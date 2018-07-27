@@ -1,0 +1,3 @@
+remap_key=VK_CAPITAL
+when_alone=VK_ESCAPE
+with_other=VK_CONTROL
