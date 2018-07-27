@@ -6,7 +6,13 @@
 
 #define MAX_ERR_LEN 40
 
-typedef enum t_keyState { INPUT_KEYDOWN, INPUT_KEYUP } t_keyState;
+typedef enum t_inputType { INPUT_KEYDOWN, INPUT_KEYUP } t_inputType;
+
+typedef enum t_remappedKeyState {
+	NOT_HELD_DOWN,
+	HELD_DOWN_ALONE,
+	HELD_DOWN_WITH_OTHER
+} t_remappedKeyState;
 
 typedef struct {
 	char *name;
@@ -30,8 +36,7 @@ t_config* config_new()
 
 static HHOOK hook;
 static t_config *config;
-static IsHoldingDownKey = 0;
-static HasPressedOtherKey = 0;
+static t_remappedKeyState remappedKeyState = NOT_HELD_DOWN;
 
 static t_vkey vkeytable[] = {
 	{"VK_LBUTTON",             0x01}, // Left mouse button
@@ -208,19 +213,19 @@ int parseConfigLine(char *line, t_config* config)
 	{
 		vkeyname = &line[10];
 		vkeycode = vkeyNameToCode(vkeyname);
-		config->remapKey = vkeycode;
+		config->remapKey = vkeycode > 0 ? vkeycode : 0;
 	}
 	else if (strstr(line, "when_alone="))
 	{
 		vkeyname = &line[11];
 		vkeycode = vkeyNameToCode(vkeyname);
-		config->whenAlone = vkeycode;
+		config->whenAlone = vkeycode > 0 ? vkeycode : 0;
 	}
 	else if (strstr(line, "with_other="))
 	{
 		vkeyname = &line[11];
 		vkeycode = vkeyNameToCode(vkeyname);
-		config->withOther = vkeycode;
+		config->withOther = vkeycode > 0 ? vkeycode : 0;
 	}
 	else
 	{
@@ -243,27 +248,30 @@ t_config *parseConfig(char *path)
 	char line[40];
 	t_config *config = config_new();
 
-	if (fopen_s(&fs, path, "r") == 0)
-	{
-		while (fgets(line, 40, fs))
-		{
-			trimnewline(line);
-			if (line[0] == '\0') // Ignore empty lines
-				continue;
-			if (parseConfigLine(line, config) == 1)
-				goto error;
-		};
-		fclose(fs);
-	}
-	else
+	if (fopen_s(&fs, path, "r") == 1)
 	{
 		printf("Cannot open configuration file '%s'. Make sure it is in the same directory as 'key-dual-remap.exe'.\n", path);
 		goto error;
 	}
 
-	if (!config->remapKey || !config->whenAlone || !config->withOther)
+	while (fgets(line, 40, fs))
 	{
-		printf("Not all required settings present in config. Expected 'remap_key', 'when_alone', and 'with_other'.");
+		trimnewline(line);
+		if (line[0] == '\0')
+			continue;  // Ignore empty lines
+		if (parseConfigLine(line, config) == 1)
+			goto error;
+	};
+	fclose(fs);
+
+	if (!(config->remapKey && config->whenAlone && config->withOther))
+	{
+		printf("Not all required settings present in config. Expected 'remap_key', 'when_alone', and 'with_other'.\n");
+		goto error;
+	}
+	if (config->remapKey == config->whenAlone || config->remapKey == config->withOther)
+	{
+		printf("Cannot remap key to itself. Make sure that remap_key is different from both when_alone and with_other.\n");
 		goto error;
 	}
 
@@ -274,7 +282,7 @@ t_config *parseConfig(char *path)
 		return NULL;
 }
 
-void sendKeyInput(int keyCode, t_keyState keyState)
+void sendKeyInput(int keyCode, t_inputType inputType)
 {
 	INPUT input;
 	input.type = INPUT_KEYBOARD;
@@ -282,47 +290,46 @@ void sendKeyInput(int keyCode, t_keyState keyState)
 	input.ki.time = 0;
 	input.ki.dwExtraInfo = 0;
 	input.ki.wVk = keyCode;
-	input.ki.dwFlags = keyState == INPUT_KEYUP ? KEYEVENTF_KEYUP : 0;
+	input.ki.dwFlags = inputType == INPUT_KEYUP ? KEYEVENTF_KEYUP : 0;
     SendInput(1, &input, sizeof(INPUT));
 }
 
 LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     const KBDLLHOOKSTRUCT *key = (KBDLLHOOKSTRUCT *) lParam;
-    const t_keyState keyState = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) ? INPUT_KEYUP : INPUT_KEYDOWN;
+    const t_inputType inputType = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) ? INPUT_KEYUP : INPUT_KEYDOWN;
 
 	if (config->remapKey != key->vkCode)
 	{
-	    // Non-remapped key: let it be handled by the system
-		// If we're holding down the remapped key, send a keydown signal
-		// if the user presses another key with it
-		if (IsHoldingDownKey && !HasPressedOtherKey)
+	    // Handle non-remapped key: let it be handled by the system
+		// If holding down they remapped key, toggle state and send withOther KEYDOWN
+		if (remappedKeyState == HELD_DOWN_ALONE)
 		{
-			HasPressedOtherKey = 1;
+			remappedKeyState = HELD_DOWN_WITH_OTHER;
 			sendKeyInput(config->withOther, INPUT_KEYDOWN);
 		}
-
 		return CallNextHookEx(hook, nCode, wParam, lParam);
 	}
-	else if (keyState == INPUT_KEYDOWN)
+	else if (inputType == INPUT_KEYDOWN && remappedKeyState == NOT_HELD_DOWN)
 	{
-		// Remapped key pressed down: Start listening for other key presses
-		IsHoldingDownKey = 1;
-		HasPressedOtherKey = 0;
+		// Handle remapped key KEYDOWN: Start listening other key presses
+		// Ignores KEYDOWN if according to state we're already holding down (multiple keys/keyboards)
+		remappedKeyState = HELD_DOWN_ALONE;
 	}
-	else {
-		// Remapped key pressed up: Either send whenAlone or finish sending withOther key
-		if (HasPressedOtherKey)
-		{
-			sendKeyInput(config->withOther, INPUT_KEYUP);
-		}
-		else
-		{
-			IsHoldingDownKey = 0;
-			HasPressedOtherKey = 0;
-			sendKeyInput(config->whenAlone, INPUT_KEYDOWN);
-			sendKeyInput(config->whenAlone, INPUT_KEYUP);
-		}
+	// Handle remapped key KEYUP: Either send whenAlone or finish sending withOther key
+	// Ignores KEYUP if according to state we're not holding down (multiple keys/keyboards)
+	// As a result, for multiple keys/keyboards only the first KEYUP will send output
+	// For safety adjust our state _before_ sending further key inputs
+	else if (inputType == INPUT_KEYUP && remappedKeyState == HELD_DOWN_ALONE)
+	{
+		remappedKeyState = NOT_HELD_DOWN;
+		sendKeyInput(config->whenAlone, INPUT_KEYDOWN);
+		sendKeyInput(config->whenAlone, INPUT_KEYUP);
+	}
+	else if (inputType == INPUT_KEYUP && remappedKeyState == HELD_DOWN_WITH_OTHER)
+	{
+		remappedKeyState = NOT_HELD_DOWN;
+		sendKeyInput(config->withOther, INPUT_KEYUP);
 	}
 
     return 1;
@@ -332,7 +339,7 @@ int main(void)
 {
 	HWND hWnd = GetConsoleWindow();
 	MSG msg;
-	HANDLE hMutexHandle = CreateMutex(NULL, TRUE, L"dual-key-remap.single-instance");
+	HANDLE hMutexHandle = CreateMutex(NULL, TRUE, "dual-key-remap.single-instance");
 
 	if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
