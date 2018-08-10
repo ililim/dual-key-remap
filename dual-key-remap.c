@@ -291,17 +291,17 @@ void sendKeyInput(int keyCode, t_inputType inputType)
 	input.ki.dwExtraInfo = (ULONG_PTR)INJECTED_KEY_ID;
 	input.ki.wVk = keyCode;
 	input.ki.dwFlags = inputType == INPUT_KEYUP ? KEYEVENTF_KEYUP : 0;
-    SendInput(1, &input, sizeof(INPUT));
+	SendInput(1, &input, sizeof(INPUT));
 }
 
 LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    const KBDLLHOOKSTRUCT *key = (KBDLLHOOKSTRUCT *) lParam;
-    const t_inputType inputType = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) ? INPUT_KEYUP : INPUT_KEYDOWN;
+	const KBDLLHOOKSTRUCT *key = (KBDLLHOOKSTRUCT *) lParam;
+	const t_inputType inputType = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) ? INPUT_KEYUP : INPUT_KEYDOWN;
 
 	if (config->remapKey != key->vkCode || key->dwExtraInfo == INJECTED_KEY_ID)
 	{
-	    // Handles non-remapped keys:
+		// Handles non-remapped keys:
 		// This includes injected inputs to avoid recursive loops
 		// If remapped key is already held down, toggle state to indicate that
 		// it is no longer held down alone and send withOther KEYDOWN
@@ -341,7 +341,7 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 		sendKeyInput(config->withOther, INPUT_KEYUP);
 	}
 
-    return 1;
+	return 1;
 }
 
 int main(void)
@@ -351,10 +351,10 @@ int main(void)
 	HANDLE hMutexHandle = CreateMutex(NULL, TRUE, "dual-key-remap.single-instance");
 
 	if (GetLastError() == ERROR_ALREADY_EXISTS)
-    {
-        printf("dual-key-remap.exe is already running!\n");
+	{
+		printf("dual-key-remap.exe is already running!\n");
 		goto error;
-    }
+	}
 
 	config = parseConfig("config.txt");
 	if (config == NULL)
@@ -373,24 +373,24 @@ int main(void)
 	// No errors, we can hide console window
 	ShowWindow(hWnd, SW_HIDE);
 
-    while(GetMessage(&msg, NULL, 0, 0) > 0)
+	while(GetMessage(&msg, NULL, 0, 0) > 0)
 	{
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 
 	free(config);
 	ReleaseMutex(hMutexHandle);
 	CloseHandle(hMutexHandle);
 	UnhookWindowsHookEx(hook);
-    return 0;
+	return 0;
 
-    error:
-    	free(config);
+	error:
+		free(config);
 		ReleaseMutex(hMutexHandle);
 		CloseHandle(hMutexHandle);
 		ShowWindow(hWnd, SW_SHOW);
-    	printf("Press any key to exit...\n");
+		printf("Press any key to exit...\n");
 		getch();
 		return 1;
 }
