@@ -248,7 +248,7 @@ t_config *parseConfig(char *path)
 	char line[40];
 	t_config *config = config_new();
 
-	if (fopen_s(&fs, path, "r") == 1)
+	if (fopen_s(&fs, path, "r") > 0)
 	{
 		printf("Cannot open configuration file '%s'. Make sure it is in the same directory as 'key-dual-remap.exe'.\n", path);
 		goto error;
