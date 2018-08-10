@@ -308,15 +308,22 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			remappedKeyState = HELD_DOWN_WITH_OTHER;
 			sendKeyInput(config->withOther, INPUT_KEYDOWN);
 		}
+
+		// Exit early, allowing others to process the key
 		return CallNextHookEx(hook, nCode, wParam, lParam);
 	}
-	else if (inputType == INPUT_KEYDOWN && remappedKeyState == NOT_HELD_DOWN)
-	{
-		// Handle remapped key KEYDOWN: Start listening other key presses
-		// Ignores KEYDOWN if according to state we're already holding down (multiple keys/keyboards)
+
+	// This is our remapped input and we no longer the others process this key
+
+	if (inputType == INPUT_KEYDOWN && remappedKeyState == NOT_HELD_DOWN) {
+		// Handles remapped key KEYDOWN:
+		// Start listening other key presses
+		// Ignores KEYDOWN if according to state we're already holding down
+		// (possible with multiple keys/keyboards)
 		remappedKeyState = HELD_DOWN_ALONE;
 	}
-	// Handle remapped key KEYUP: Either send whenAlone or finish sending withOther key
+	// Handles remapped key KEYUP:
+	// Either send whenAlone or finish sending withOther key
 	// Ignores KEYUP if according to state we're not holding down (multiple keys/keyboards)
 	// As a result, for multiple keys/keyboards only the first KEYUP will send output
 	// For safety adjust our state _before_ sending further key inputs
@@ -369,16 +376,18 @@ int main(void)
         TranslateMessage(&msg);
         DispatchMessage(&msg);
 	}
-	UnhookWindowsHookEx(hook);
 
 	free(config);
+	ReleaseMutex(hMutexHandle);
+	CloseHandle(hMutexHandle);
+	UnhookWindowsHookEx(hook);
     return 0;
 
     error:
     	free(config);
-		ShowWindow(hWnd, SW_SHOW);
 		ReleaseMutex(hMutexHandle);
 		CloseHandle(hMutexHandle);
+		ShowWindow(hWnd, SW_SHOW);
     	printf("Press any key to exit...\n");
 		getch();
 		return 1;
