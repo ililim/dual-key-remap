@@ -6,6 +6,11 @@
 
 #define MAX_ERR_LEN 40
 
+// A semi random value used to identify inputs generated
+// by Dual Key Remap. Ideally high to minimize chances of a collision
+// with a real pointer used by another application
+#define INJECTED_KEY_ID 0xFFC3CED7
+
 typedef enum t_inputType { INPUT_KEYDOWN, INPUT_KEYUP } t_inputType;
 
 typedef enum t_remappedKeyState {
@@ -269,11 +274,6 @@ t_config *parseConfig(char *path)
 		printf("Not all required settings present in config. Expected 'remap_key', 'when_alone', and 'with_other'.\n");
 		goto error;
 	}
-	if (config->remapKey == config->whenAlone || config->remapKey == config->withOther)
-	{
-		printf("Cannot remap key to itself. Make sure that remap_key is different from both when_alone and with_other.\n");
-		goto error;
-	}
 
 	return config;
 
@@ -288,7 +288,7 @@ void sendKeyInput(int keyCode, t_inputType inputType)
 	input.type = INPUT_KEYBOARD;
 	input.ki.wScan = 0;
 	input.ki.time = 0;
-	input.ki.dwExtraInfo = 0;
+	input.ki.dwExtraInfo = (ULONG_PTR)INJECTED_KEY_ID;
 	input.ki.wVk = keyCode;
 	input.ki.dwFlags = inputType == INPUT_KEYUP ? KEYEVENTF_KEYUP : 0;
     SendInput(1, &input, sizeof(INPUT));
@@ -299,10 +299,12 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     const KBDLLHOOKSTRUCT *key = (KBDLLHOOKSTRUCT *) lParam;
     const t_inputType inputType = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) ? INPUT_KEYUP : INPUT_KEYDOWN;
 
-	if (config->remapKey != key->vkCode)
+	if (config->remapKey != key->vkCode || key->dwExtraInfo == INJECTED_KEY_ID)
 	{
-	    // Handle non-remapped key: let it be handled by the system
-		// If holding down they remapped key, toggle state and send withOther KEYDOWN
+	    // Handles non-remapped keys:
+		// This includes injected inputs to avoid recursive loops
+		// If remapped key is already held down, toggle state to indicate that
+		// it is no longer held down alone and send withOther KEYDOWN
 		if (remappedKeyState == HELD_DOWN_ALONE)
 		{
 			remappedKeyState = HELD_DOWN_WITH_OTHER;
