@@ -39,6 +39,7 @@ typedef struct t_config {
 	int remapKey[2];
 	int whenAlone;
 	int withOther;
+	int debug;
 } t_config;
 
 t_config* config_new()
@@ -48,6 +49,7 @@ t_config* config_new()
 	config->remapKey[1] = 0;
 	config->whenAlone = 0;
 	config->withOther = 0;
+	config->debug = 0;
 	return config;
 }
 
@@ -413,6 +415,17 @@ void trimnewline(char* buffer)
 
 int parseConfigLine(int linenum, char *line, t_config* config)
 {
+	// Parse debug settings
+	if (strstr(line, "debug=1"))
+	{
+		config->debug = 1;
+		return 0;
+	}
+	else if (strstr(line, "debug=0"))
+	{
+		config->debug = 0;
+		return 0;
+	}
 
 	// Parse key settings
 	char *keyname = strchr(line, '=') + 1;
@@ -599,8 +612,9 @@ int main(void)
 		goto error;
 	}
 
-	// No errors, we can hide console window
-	ShowWindow(hWnd, SW_HIDE);
+	// No errors, hide the console window if we're not debugging
+	if (!config->debug)
+		ShowWindow(hWnd, SW_HIDE);
 
 	while(GetMessage(&msg, NULL, 0, 0) > 0)
 	{
