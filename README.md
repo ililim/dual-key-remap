@@ -48,3 +48,7 @@ The reason this works is because Dual Key Remap sends Escape or Ctrl depending o
 Dual Key Remap won't rebind any keys until the application is running, which means that during the login screen (and until Windows has launched all startup processes) your keys aren't rebound yet. This is not a problem for most people, but if it bothers you there are additional steps you could take to fix this.
 
 By using an utility like [Sharp Keys](https://github.com/randyrants/sharpkeys) you can rebind keys in the windows registry. While this method only supports simple key-to-key rebinding, these rebindings persist in the Windows login screen. So if you want to use CapsLock as Ctrl/Escape you could do the following: Rebind CapsLock to Escape in Sharp Keys, then rebind Escape to Ctrl/Escape in Dual Key Remap. As a result, your CapsLock key will work as Escape during login and early startup, and once Windows is fully loaded the dual key functionality will activate.
+
+## Developing
+
+To compile this project on Windows you will have to link the user32.lib library. Once you have the required [cli utilities](https://msdn.microsoft.com/en-us/library/bb384838.aspx) installed you will be able to compile the app by running: `cl dual-key-remap.c /link user32.lib`.
