@@ -1,3 +1,3 @@
-remap_key=VK_CAPITAL
-when_alone=VK_ESCAPE
-with_other=VK_CONTROL
+remap_key=CAPSLOCK
+when_alone=ESCAPE
+with_other=CONTROL

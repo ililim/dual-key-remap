@@ -21,17 +21,7 @@ To uninstall, terminate the script from the task manager and remove the startup 
 
 ## Configuration
 
-With the default configuration Dual Key Remap will remap CapsLock to Escape when pressed alone and Ctrl when pressed with other keys. To change this simply edit config.txt and adjust the key values. Refer to keys by their [virtual key codes](https://docs.microsoft.com/en-us/windows/desktop/inputdev/virtual-key-codes). The characters A-Z and 0-9 can be referred to literally.
-
-An example config.txt could look like this:
-
-```
-remap_key=VK_MENU
-when_alone=A
-with_other=VK_CONTROL
-```
-
-This would remap the alt key (VK_MENU) to output 'A' when tapped alone and Ctrl when pressed with other keys.
+With the default configuration Dual Key Remap will remap CapsLock to Escape when pressed alone and Ctrl when pressed with other keys. To change this simply edit config.txt and adjust the key values. You can to keys by their names as described in the [wiki](https://github.com/ililim/dual-key-remap/wiki/Using-config.txt#key-names).
 
 ## Tips and Tricks
 
