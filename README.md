@@ -31,7 +31,7 @@ Below are a few optional advanced tips for configuring your system and using Dua
 
 Certain applications might require shortcuts such as Shift+Escape. These can still be launched with Dual Key Remap. To launch these, simply hold the modifier keys (e.g. Shift, Ctrl) first and press the CapsLock key last. Dual Key Remap will send the Shift+Escape key combination as expected!
 
-The reason this works is because Dual Key Remap sends Escape or Ctrl depending on whether any other keys where pressed _after_ CapsLock was held down, so tapping Escape as the last part of a sequence of keys will always send Escape.
+The reason this works is because Dual Key Remap sends Escape or Ctrl depending on whether any other keys where pressed _after_ CapsLock was held down, so tapping CapsLock as the last part of a sequence of keys will always send Escape.
 
 ### Rebind keys during login
 
