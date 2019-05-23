@@ -11,52 +11,66 @@
 // with a real pointer used by another application
 #define INJECTED_KEY_ID 0xFFC3CED7
 
-typedef enum t_inputState {
+enum inputUpDown {
 	INPUT_KEYDOWN,
 	INPUT_KEYUP
-} t_inputState;
+};
 
 // This flag needs to be high enough to be stored
-// on top of code values up to 0xFFFF
-typedef enum  t_keyType {
+// on top of key code values up to 0xFFFF
+enum keyCodeType {
 	HARDWARE_KEY = 0,
 	VIRTUAL_KEY = 2 << 15,
-} t_keyType;
+};
 
-typedef struct t_key {
+struct keyDef {
 	char *name;
 	int code;
 	int altCode;
-} t_key;
+};
 
-typedef enum t_remappedKeyState {
+enum remappedKeyState {
 	NOT_HELD_DOWN,
 	HELD_DOWN_ALONE,
 	HELD_DOWN_WITH_OTHER
-} t_remappedKeyState;
+};
 
-typedef struct t_config {
-	int remapKey[2];
+struct keyState {
+    int remapKey;
+    int altRemapKey;
 	int whenAlone;
 	int withOther;
-	int debug;
-} t_config;
+	enum remappedKeyState state;
 
-t_config* config_new()
-{
-	t_config* config = malloc(sizeof(config));
-	config->remapKey[0] = 0;
-	config->remapKey[1] = 0;
-	config->whenAlone = 0;
-	config->withOther = 0;
-	config->debug = 0;
-	return config;
+    struct keyState *next;
+};
+
+struct appState {
+	int debug;
+    struct keyState *keysHead;
+    struct keyState *keysTail;
+};
+
+void addKeytoState(struct appState *state, int remapKey, int altRemapKey, int whenAlone, int withOther) {
+    struct keyState *key = malloc(sizeof(struct keyState));
+    key->remapKey = remapKey;
+    key->altRemapKey = altRemapKey;
+    key->whenAlone = whenAlone;
+    key->withOther = withOther;
+	key->state = NOT_HELD_DOWN;
+
+    if (!state->keysHead) {
+        state->keysHead = key;
+    } else {
+        state->keysTail->next = key;
+    }
+    state->keysTail = key;
 }
 
 // Globals
-static HHOOK hook;
-static t_config *config;
-static t_remappedKeyState remappedKeyState = NOT_HELD_DOWN;
+HHOOK g_keyboardHook;
+HHOOK g_mouseHook;
+struct appState g_state;
 
 // The table of configurable key names and their respective codes.
 // These code value can refer to either a virtual or harware code,
@@ -65,7 +79,7 @@ static t_remappedKeyState remappedKeyState = NOT_HELD_DOWN;
 //
 // Generally using hardware scan codes is recommended as these do not
 // get intercepted by DirectX and thus will work in more applications.
-static t_key keytable[] = {
+struct keyDef keytable[] = {
 	// Multi Keys: These are keys that refer to two codes (left & right keys)
 	{"CTRL", 0x001D, 0xE01D},
 	{"SHIFT", 0x002A, 0x0036},
@@ -394,14 +408,14 @@ static t_key keytable[] = {
 	{"VK_PA1",                 0xFD | VIRTUAL_KEY}, // PA1 key
 	{"VK_OEM_CLEAR",           0xFE | VIRTUAL_KEY}, // Clear key
 };
-#define NKEYS (sizeof(keytable)/sizeof(t_key))
+#define KEY_TABLE_LEN (sizeof(keytable)/sizeof(struct keyDef))
 
-t_key* findKeyByName(char *name)
+struct keyDef *keyDefByName(char *name)
 {
 	if (!name) return NULL;
-	for (int i = 0; i < NKEYS; ++i)
+	for (int i = 0; i < KEY_TABLE_LEN; ++i)
 	{
-		t_key *key = keytable + i;
+		struct keyDef *key = keytable + i;
 		if (strcmp(key->name, name) == 0)
 			return key;
 	}
@@ -413,89 +427,89 @@ void trimnewline(char* buffer)
 	buffer[strcspn(buffer, "\r\n")] = 0;
 }
 
-int parseConfigLine(int linenum, char *line, t_config* config)
+int setStateFromConfigLine(struct appState *state, char *line, int linenum)
 {
-	// Parse debug settings
+	// Handle debug mode
 	if (strstr(line, "debug=1"))
 	{
-		config->debug = 1;
+		state->debug = 1;
 		return 0;
 	}
 	else if (strstr(line, "debug=0"))
 	{
-		config->debug = 0;
+		state->debug = 0;
 		return 0;
 	}
 
-	// Parse key settings
-	char *keyname = strchr(line, '=') + 1;
-	t_key *key = findKeyByName(keyname);
+	// Handle key remappings
+	char *keyName = strchr(line, '=') + 1;
+	struct keyDef *keyDef = keyDefByName(keyName);
+	struct keyState *keyState = state->keysTail;
 
-	if (!key)
+	if (!keyDef)
 	{
-		printf("Cannot parse line %i in config: '%s'. Make sure you've used the correct keycode, and that that there is no extraneous whitespace.\n", linenum, line);
+		printf("Cannot parse line %i in config: Unknown key '%s'.\nMake sure you've used the correct keycode, and that that there is no extraneous whitespace.\n", linenum, keyName);
 		return 1;
 	}
 
 	if (strstr(line, "remap_key="))
 	{
-		config->remapKey[0] = key->code;
-		config->remapKey[1] = key->altCode;
+		addKeytoState(state, keyDef->code, keyDef->altCode, 0, 0);
 	}
 	else if (strstr(line, "when_alone="))
 	{
-		config->whenAlone = key->code;
+		state->keysTail->whenAlone = keyDef->code;
 	}
 	else if (strstr(line, "with_other="))
 	{
-		config->withOther = key->code;
+		state->keysTail->withOther = keyDef->code;
 	}
 	else
 	{
-		printf("Cannot parse line %i in config: '%s'. Make sure the setting is one of 'remap_key', 'when_alone', or 'with_other'.\n", linenum, line);
+		printf("Cannot parse line %i in config: '%s'.\nMake sure you've used a valid config option, and that that there is no extraneous whitespace. Supported options: 'debug', 'remap_key', 'when_alone', 'with_other'.\n", linenum, line);
 		return 1;
 	}
 
 	return 0;
 }
 
-t_config *parseConfig(char *path)
+int initStateFromConfig(struct appState *state, char *path)
 {
 	FILE *fs;
 	char line[40];
-	t_config *config = config_new();
 
 	if (fopen_s(&fs, path, "r") > 0)
 	{
 		printf("Cannot open configuration file '%s'. Make sure it is in the same directory as 'key-dual-remap.exe'.\n", path);
-		goto error;
+        return 1;
 	}
 
 	int linenum = 1;
 	while (fgets(line, 40, fs))
 	{
 		trimnewline(line);
-		if (line[0] == '\0')
-			continue;  // Ignore empty lines
-		if (parseConfigLine(++linenum, line, config) == 1)
-			goto error;
+		if (line[0] == '\0') continue; // Ignore empty lines
+		if (setStateFromConfigLine(state, line, ++linenum)) {
+			fclose(fs);
+			return 1;
+		}
 	};
 	fclose(fs);
 
-	if (!(config->remapKey[0] && config->whenAlone && config->withOther))
-	{
-		printf("Not all required settings present in config. Expected 'remap_key', 'when_alone', and 'with_other'.\n");
-		goto error;
+	// Validate remappings
+	struct keyState *key = g_state.keysHead;
+	do {
+		if (!(key && key->whenAlone && key->withOther)) {
+			printf("Invalid config: Incomplete remapping.\nEach remapping must have 'remap_key', 'when_alone', and 'with_other' declared.\n");
+			return 1;
 	}
+        key = key->next;
+    } while(key);
 
-	return config;
-
-	error:
-		free(config);
-		return NULL;
+    return 0;
 }
 
-void sendKeyInput(int keyCode, int inputState)
+void sendKeyEvent(int keyCode, int keyUpDown)
 {
 	INPUT input;
 	input.type = INPUT_KEYBOARD;
@@ -505,13 +519,13 @@ void sendKeyInput(int keyCode, int inputState)
 	if (keyCode & VIRTUAL_KEY) {
 		input.ki.wScan = 0;
 		input.ki.wVk = keyCode & ~VIRTUAL_KEY;
-		input.ki.dwFlags = inputState == INPUT_KEYUP ? KEYEVENTF_KEYUP : 0;
+		input.ki.dwFlags = keyUpDown == INPUT_KEYUP ? KEYEVENTF_KEYUP : 0;
 	}
 	else // Hardware key
 	{
 		input.ki.wScan = keyCode;
 		input.ki.wVk = 0;
-		input.ki.dwFlags = inputState == INPUT_KEYUP ? KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP : KEYEVENTF_SCANCODE;
+		input.ki.dwFlags = keyUpDown == INPUT_KEYUP ? KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP : KEYEVENTF_SCANCODE;
 	}
 
 	SendInput(1, &input, sizeof(INPUT));
@@ -519,69 +533,80 @@ void sendKeyInput(int keyCode, int inputState)
 
 LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-	const KBDLLHOOKSTRUCT *key = (KBDLLHOOKSTRUCT *) lParam;
-	const t_inputState inputState = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) ? INPUT_KEYUP : INPUT_KEYDOWN;
-	int isRemappedKey = 0;
+	// Required per Microsoft documentation
+	if (nCode != HC_ACTION) return CallNextHookEx(g_keyboardHook, nCode, wParam, lParam);
+
+
+	const KBDLLHOOKSTRUCT *inputKey = (KBDLLHOOKSTRUCT *) lParam;
+	enum inputUpDown inputUpDown = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) ? INPUT_KEYUP : INPUT_KEYDOWN;
 
 	// Check if this is one of the keys we are looking for
-	for(size_t i = 0; i < 2; i++)
-	{
-		if (config->remapKey[i] &&
-			((config->remapKey[i] & VIRTUAL_KEY)
-			? (config->remapKey[i] & ~VIRTUAL_KEY) == key->vkCode
-			: config->remapKey[i] == key->scanCode))
+	int isRemappedKey = 0;
+    struct keyState *keyState = g_state.keysHead;
+	while(keyState)
 		{
+		if (
+			keyCodeMatchesInput(keyState->remapKey, inputKey) ||
+			(keyState->altRemapKey && keyCodeMatchesInput(keyState->altRemapKey, inputKey))
+		) {
 			isRemappedKey = 1;
 			break;
 		}
+        keyState = keyState->next;
 	}
 
-	if (config->debug)
+	if (g_state.debug)
 	{
-		printf("Logged keypress (Injected: %i, vkCode: %lu, scanCode: %lu, flags: %lu, dwExtraInfo: %lu\n", ((key->flags & LLKHF_INJECTED) == LLKHF_INJECTED), key->vkCode, key->scanCode, key->flags, key->dwExtraInfo);
+		printf("Logged keypress (Injected: %i, vkCode: %lu, scanCode: %lu, flags: %lu, dwExtraInfo: %lu\n",
+			((inputKey->flags & LLKHF_INJECTED) == LLKHF_INJECTED), inputKey->vkCode, inputKey->scanCode, inputKey->flags, inputKey->dwExtraInfo);
 	}
 
-	if (!isRemappedKey || key->dwExtraInfo == INJECTED_KEY_ID)
-	{
 		// Handles non-remapped keys:
 		// This includes injected inputs to avoid recursive loops
-		// If remapped key is already held down, toggle state to indicate that
-		// it is no longer held down alone and send withOther KEYDOWN
-		if (remappedKeyState == HELD_DOWN_ALONE)
+	if (!isRemappedKey || inputKey->dwExtraInfo == INJECTED_KEY_ID)
 		{
-			remappedKeyState = HELD_DOWN_WITH_OTHER;
-			sendKeyInput(config->withOther, INPUT_KEYDOWN);
+		// If we are pressing a key, we must update the state of all held down remapped keys
+		if (inputUpDown == INPUT_KEYDOWN) {
+			struct keyState *keyState = g_state.keysHead;
+			while(keyState) {
+				if (keyState->state == HELD_DOWN_ALONE) {
+					keyState->state = HELD_DOWN_WITH_OTHER;
+					sendKeyEvent(keyState->withOther, INPUT_KEYDOWN);
+				}
+				keyState = keyState->next;
+			}
 		}
 
 		// Exit early, allowing others to process the key
-		return CallNextHookEx(hook, nCode, wParam, lParam);
+		return CallNextHookEx(g_keyboardHook, nCode, wParam, lParam);
 	}
 
-	// This is our remapped input and we no longer let others process this key
+	// After this point the key is a remapped that is going to be swallowed
 
 	// Handles remapped key KEYDOWN:
-	// Start listening other key presses
-	// Ignores KEYDOWN if according to state we're already holding down
-	// (possible with multiple keys/keyboards)
-	if (inputState == INPUT_KEYDOWN && remappedKeyState == NOT_HELD_DOWN)
+	// - Start listening other key presses
+	// - Ignores KEYDOWN if according to state we're already holding down
+	//   (possible with multiple keys/keyboards)
+	if (inputUpDown == INPUT_KEYDOWN && keyState->state == NOT_HELD_DOWN)
 	{
-		remappedKeyState = HELD_DOWN_ALONE;
+		keyState->state = HELD_DOWN_ALONE;
 	}
 	// Handles both cases of remapped key KEYUP:
-	// Either send whenAlone or finish sending withOther key
-	// Ignores KEYUP if according to state we're not holding down (multiple keys/keyboards)
-	// As a result, for multiple keys/keyboards only the first KEYUP will send output
-	// For safety adjust our state _before_ sending further key inputs
-	else if (inputState == INPUT_KEYUP && remappedKeyState == HELD_DOWN_ALONE)
+	// - Either send whenAlone or finish sending withOther key
+	// - Ignores KEYUP if according to state we're not holding down (multiple keys/keyboards)
+	//   As a result, for multiple keys/keyboards only the first KEYUP will send output
+	// Note: For safety we adjust our state _before_ sending further key inputs
+	else if (inputUpDown == INPUT_KEYUP && keyState->state == HELD_DOWN_ALONE)
 	{
-		remappedKeyState = NOT_HELD_DOWN;
-		sendKeyInput(config->whenAlone, INPUT_KEYDOWN);
-		sendKeyInput(config->whenAlone, INPUT_KEYUP);
+		keyState->state = NOT_HELD_DOWN;
+		sendKeyEvent(keyState->whenAlone, INPUT_KEYDOWN);
+		sendKeyEvent(keyState->whenAlone, INPUT_KEYUP);
 	}
-	else if (inputState == INPUT_KEYUP && remappedKeyState == HELD_DOWN_WITH_OTHER)
+	else if (inputUpDown == INPUT_KEYUP && keyState->state == HELD_DOWN_WITH_OTHER)
 	{
-		remappedKeyState = NOT_HELD_DOWN;
-		sendKeyInput(config->withOther, INPUT_KEYUP);
+		keyState->state = NOT_HELD_DOWN;
+		// Keydown has already been sent by the other key callback
+		sendKeyEvent(keyState->withOther, INPUT_KEYUP);
 	}
 
 	return 1;
@@ -591,29 +616,28 @@ int main(void)
 {
 	HWND hWnd = GetConsoleWindow();
 	MSG msg;
-	HANDLE hMutexHandle = CreateMutex(NULL, TRUE, "dual-key-remap.single-instance");
+	HANDLE hMutexHandle = CreateMutex(NULL, TRUE, "dev-dual-key-remap.single-instance");
 
 	if (GetLastError() == ERROR_ALREADY_EXISTS)
 	{
 		printf("dual-key-remap.exe is already running!\n");
-		goto error;
+		goto end;
 	}
 
-	config = parseConfig("config.txt");
-	if (config == NULL)
-	{
-		goto error;
+	int err = initStateFromConfig(&g_state, "config.txt");
+	if (err) {
+		goto end;
 	}
 
-	hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboardProc, NULL, 0);
-	if (hook == NULL)
+	g_mouseHook = SetWindowsHookEx(WH_MOUSE_LL, mouseProc, NULL, 0);
+	if (g_keyboardHook == NULL)
 	{
-		printf("Cannot hook into the windows API.");
-		goto error;
+		printf("Cannot hook into the Windows API.");
+		goto end;
 	}
 
 	// No errors, hide the console window if we're not debugging
-	if (!config->debug)
+	if (!g_state.debug)
 		ShowWindow(hWnd, SW_HIDE);
 
 	while(GetMessage(&msg, NULL, 0, 0) > 0)
@@ -622,14 +646,7 @@ int main(void)
 		DispatchMessage(&msg);
 	}
 
-	free(config);
-	ReleaseMutex(hMutexHandle);
-	CloseHandle(hMutexHandle);
-	UnhookWindowsHookEx(hook);
-	return 0;
-
-	error:
-		free(config);
+	end:
 		ReleaseMutex(hMutexHandle);
 		CloseHandle(hMutexHandle);
 		ShowWindow(hWnd, SW_SHOW);
