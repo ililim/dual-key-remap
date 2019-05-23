@@ -38,15 +38,15 @@ enum remappedKeyState {
 struct keyState {
     int remapKey;
     int altRemapKey;
-	int whenAlone;
-	int withOther;
+    int whenAlone;
+    int withOther;
 	enum remappedKeyState state;
 
     struct keyState *next;
 };
 
 struct appState {
-	int debug;
+    int debug;
     struct keyState *keysHead;
     struct keyState *keysTail;
 };
@@ -478,13 +478,13 @@ int initStateFromConfig(struct appState *state, char *path)
 	FILE *fs;
 	char line[40];
 
-	if (fopen_s(&fs, path, "r") > 0)
+    if (fopen_s(&fs, path, "r") > 0)
 	{
 		printf("Cannot open configuration file '%s'. Make sure it is in the same directory as 'key-dual-remap.exe'.\n", path);
         return 1;
 	}
 
-	int linenum = 1;
+    int linenum = 1;
 	while (fgets(line, 40, fs))
 	{
 		trimnewline(line);
@@ -502,7 +502,7 @@ int initStateFromConfig(struct appState *state, char *path)
 		if (!(key && key->whenAlone && key->withOther)) {
 			printf("Invalid config: Incomplete remapping.\nEach remapping must have 'remap_key', 'when_alone', and 'with_other' declared.\n");
 			return 1;
-	}
+		}
         key = key->next;
     } while(key);
 
@@ -531,6 +531,37 @@ void sendKeyEvent(int keyCode, int keyUpDown)
 	SendInput(1, &input, sizeof(INPUT));
 }
 
+int keyCodeMatchesInput(int keyCode, const KBDLLHOOKSTRUCT *key)
+{
+	return (keyCode & VIRTUAL_KEY)
+		? (keyCode & ~VIRTUAL_KEY) == key->vkCode
+		: keyCode == key->scanCode;
+}
+
+LRESULT CALLBACK mouseProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	// Required per Microsoft documentation
+	if (nCode != HC_ACTION) return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
+	
+	// If mouse is pressed down we update the held down keys to with_other
+	switch (wParam) {
+		case WM_LBUTTONDOWN:
+		case WM_RBUTTONDOWN:
+		case WM_MBUTTONDOWN:
+		case WM_NCXBUTTONDOWN:
+		case WM_XBUTTONDOWN:
+			struct keyState *keyState = g_state.keysHead;
+			while(keyState) {
+				if (keyState->state == HELD_DOWN_ALONE) {
+					keyState->state = HELD_DOWN_WITH_OTHER;
+					sendKeyEvent(keyState->withOther, INPUT_KEYDOWN);
+				}
+				keyState = keyState->next;
+			}
+	}
+	return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
+}
+
 LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	// Required per Microsoft documentation
@@ -544,7 +575,7 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	int isRemappedKey = 0;
     struct keyState *keyState = g_state.keysHead;
 	while(keyState)
-		{
+    {
 		if (
 			keyCodeMatchesInput(keyState->remapKey, inputKey) ||
 			(keyState->altRemapKey && keyCodeMatchesInput(keyState->altRemapKey, inputKey))
@@ -553,7 +584,7 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			break;
 		}
         keyState = keyState->next;
-	}
+    }
 
 	if (g_state.debug)
 	{
@@ -561,10 +592,10 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			((inputKey->flags & LLKHF_INJECTED) == LLKHF_INJECTED), inputKey->vkCode, inputKey->scanCode, inputKey->flags, inputKey->dwExtraInfo);
 	}
 
-		// Handles non-remapped keys:
-		// This includes injected inputs to avoid recursive loops
+	// Handles non-remapped keys:
+	// This includes injected inputs to avoid recursive loops
 	if (!isRemappedKey || inputKey->dwExtraInfo == INJECTED_KEY_ID)
-		{
+	{
 		// If we are pressing a key, we must update the state of all held down remapped keys
 		if (inputUpDown == INPUT_KEYDOWN) {
 			struct keyState *keyState = g_state.keysHead;
@@ -629,6 +660,7 @@ int main(void)
 		goto end;
 	}
 
+	g_keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboardProc, NULL, 0);
 	g_mouseHook = SetWindowsHookEx(WH_MOUSE_LL, mouseProc, NULL, 0);
 	if (g_keyboardHook == NULL)
 	{
