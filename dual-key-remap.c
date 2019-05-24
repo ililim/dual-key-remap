@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#define MAX_ERR_LEN 40
-
 // A semi random value used to identify inputs generated
 // by Dual Key Remap. Ideally high to minimize chances of a collision
 // with a real pointer used by another application
