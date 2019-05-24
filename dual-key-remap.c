@@ -457,11 +457,11 @@ int setStateFromConfigLine(struct appState *state, char *line, int linenum)
 	}
 	else if (strstr(line, "when_alone="))
 	{
-		state->keysTail->whenAlone = keyDef->code;
+		if (state->keysTail) state->keysTail->whenAlone = keyDef->code;
 	}
 	else if (strstr(line, "with_other="))
 	{
-		state->keysTail->withOther = keyDef->code;
+		if (state->keysTail) state->keysTail->withOther = keyDef->code;
 	}
 	else
 	{
