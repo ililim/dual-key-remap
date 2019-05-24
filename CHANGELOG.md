@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.4
+### Added
+- Dual-key-remap now supports remapping multiple keys.
+- Mouse presses (keydown) will now work with the dual key. They trigger the with_other modifier (CTRL by default).
+### Changed
+- The dual key will only become the 'with_other' key when keys (or mouse) is pressed down as opposed both up and down. this means
+  that fast typists should no longer experience unexpected results due to key rollover.
+- Some keynames had incorrectly capitalized names, this has now been fixed (i.e. SCROLLLOCK instead of ScrollLock). If you remapped one
+  of these keys you will have to update your config to use the all capitalized names.
+
 ## 0.3
 ### Added
 - We now send hardware scan codes by default instead of virtual key codes. These inputs aren't intercepted by DirectX,
