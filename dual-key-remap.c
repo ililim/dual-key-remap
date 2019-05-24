@@ -472,14 +472,22 @@ int setStateFromConfigLine(struct appState *state, char *line, int linenum)
 	return 0;
 }
 
-int initStateFromConfig(struct appState *state, char *path)
+void getConfigPath(wchar_t *path, int maxLen)
+{
+	HMODULE hModule = GetModuleHandleW(NULL);
+	GetModuleFileNameW(hModule, path, maxLen);
+	path[wcslen(path) - strlen("dual-key-remap.exe")] = '\0';
+	wcscat(path, L"config.txt");
+}
+
+int initStateFromConfig(struct appState *state, wchar_t *path)
 {
 	FILE *fs;
 	char line[40];
 
-    if (fopen_s(&fs, path, "r") > 0)
+    if (_wfopen_s(&fs, path, L"r") > 0)
 	{
-		printf("Cannot open configuration file '%s'. Make sure it is in the same directory as 'key-dual-remap.exe'.\n", path);
+		printf("Cannot open configuration file '%ws'. Make sure it is in the same directory as 'key-dual-remap.exe'.\n", path);
         return 1;
 	}
 
@@ -655,7 +663,9 @@ int main(void)
 		goto end;
 	}
 
-	int err = initStateFromConfig(&g_state, "config.txt");
+	wchar_t configPath[MAX_PATH];
+	getConfigPath(configPath, MAX_PATH);
+	int err = initStateFromConfig(&g_state, configPath);
 	if (err) {
 		goto end;
 	}
