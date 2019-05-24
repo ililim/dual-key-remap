@@ -58,6 +58,7 @@ void addKeytoState(struct appState *state, int remapKey, int altRemapKey, int wh
     key->whenAlone = whenAlone;
     key->withOther = withOther;
 	key->state = NOT_HELD_DOWN;
+	key->next = NULL;
 
     if (!state->keysHead) {
         state->keysHead = key;
@@ -645,6 +646,7 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 int main(void)
 {
+	printf("dual-key-remap.exe version: 0.4, author: ililim\n\n");
 	HWND hWnd = GetConsoleWindow();
 	MSG msg;
 	HANDLE hMutexHandle = CreateMutex(NULL, TRUE, "dual-key-remap.single-instance");
