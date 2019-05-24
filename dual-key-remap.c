@@ -647,7 +647,7 @@ int main(void)
 {
 	HWND hWnd = GetConsoleWindow();
 	MSG msg;
-	HANDLE hMutexHandle = CreateMutex(NULL, TRUE, "dev-dual-key-remap.single-instance");
+	HANDLE hMutexHandle = CreateMutex(NULL, TRUE, "dual-key-remap.single-instance");
 
 	if (GetLastError() == ERROR_ALREADY_EXISTS)
 	{
@@ -664,13 +664,14 @@ int main(void)
 	g_mouseHook = SetWindowsHookEx(WH_MOUSE_LL, mouseProc, NULL, 0);
 	if (g_keyboardHook == NULL)
 	{
-		printf("Cannot hook into the Windows API.");
+		printf("Cannot hook into the Windows API.\n");
 		goto end;
 	}
 
 	// No errors, hide the console window if we're not debugging
-	if (!g_state.debug)
+	if (!g_state.debug) {
 		ShowWindow(hWnd, SW_HIDE);
+	}
 
 	while(GetMessage(&msg, NULL, 0, 0) > 0)
 	{
