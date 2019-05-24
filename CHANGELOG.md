@@ -6,10 +6,12 @@ All notable changes to this project will be documented in this file.
 - Dual-key-remap now supports remapping multiple keys.
 - Mouse presses (keydown) will now work with the dual key. They trigger the with_other modifier (CTRL by default).
 ### Changed
-- The dual key will only become the 'with_other' key when keys (or mouse) is pressed down as opposed both up and down. this means
+- The dual key will only become the 'with_other' key when keys (or mouse) is pressed down as opposed both up and down. This means
   that fast typists should no longer experience unexpected results due to key rollover.
 - Some keynames had incorrectly capitalized names, this has now been fixed (i.e. SCROLLLOCK instead of ScrollLock). If you remapped one
   of these keys you will have to update your config to use the all capitalized names.
+### Fixed
+- The config will now always be loaded from the same directory as the executable instead of the directory the executable was launched from.
 
 ## 0.3
 ### Added
