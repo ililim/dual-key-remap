@@ -550,8 +550,9 @@ LRESULT CALLBACK mouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 	// Required per Microsoft documentation
 	if (nCode != HC_ACTION) return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
 	
-	// If mouse is pressed down we update the held down keys to with_other
+	// If mouse is scrolled or pressed down we update the held down keys to with_other
 	switch (wParam) {
+		case WM_MOUSEWHEEL:
 		case WM_LBUTTONDOWN:
 		case WM_RBUTTONDOWN:
 		case WM_MBUTTONDOWN:
@@ -573,7 +574,6 @@ LRESULT CALLBACK keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	// Required per Microsoft documentation
 	if (nCode != HC_ACTION) return CallNextHookEx(g_keyboardHook, nCode, wParam, lParam);
-
 
 	const KBDLLHOOKSTRUCT *inputKey = (KBDLLHOOKSTRUCT *) lParam;
 	enum inputUpDown inputUpDown = (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) ? INPUT_KEYUP : INPUT_KEYDOWN;
