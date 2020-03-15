@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.5
+### Changed
+- Mouse scrolling will now trigger the `with_other` modifier (`CTRL` by default).
+
 ## 0.4
 ### Added
 - Dual-key-remap now supports remapping multiple keys.
