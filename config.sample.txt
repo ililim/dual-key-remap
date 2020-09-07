@@ -1,3 +1,4 @@
 remap_key=CAPSLOCK
 when_alone=ESCAPE
 with_other=CTRL
+bypass_with_title=Remote Desktop Connection
