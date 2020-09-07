@@ -48,11 +48,21 @@ struct keyState
 	struct keyState *next;
 };
 
+struct titleBypass
+{
+	char* title;
+	int length;
+
+	struct titleBypass *next;
+};
+
 struct appState
 {
 	int debug;
 	struct keyState *keysHead;
 	struct keyState *keysTail;
+	struct titleBypass *titleBypassesHead;
+	struct titleBypass *titleBypassesTail;
 };
 
 void addKeytoState(struct appState *state, int remapKey, int altRemapKey, int whenAlone, int withOther)
@@ -74,6 +84,25 @@ void addKeytoState(struct appState *state, int remapKey, int altRemapKey, int wh
 		state->keysTail->next = key;
 	}
 	state->keysTail = key;
+}
+
+void addTitleBypasstoState(struct appState *state, const char* title)
+{
+	struct titleBypass *tb = malloc(sizeof(struct titleBypass));
+	tb->length = strlen(title);
+	tb->title = malloc(tb->length+1);
+	strcpy(tb->title, title);
+	tb->next = NULL;
+
+	if (!state->titleBypassesHead)
+	{
+	    state->titleBypassesHead = tb;
+	}
+	else
+	{
+	    state->titleBypassesTail->next = tb;
+	}
+	state->titleBypassesTail = tb;
 }
 
 // Globals
@@ -419,6 +448,21 @@ struct keyDef keytable[] = {
 };
 #define KEY_TABLE_LEN (sizeof(keytable) / sizeof(struct keyDef))
 
+int windowTitleShouldBeBypassed(struct appState* state, const char* title)
+{
+	struct titleBypass* tb;
+	int result = 0;
+	for (tb = state->titleBypassesHead; tb != NULL; tb = tb->next)
+	{
+		if (strstr(title, tb->title))
+		{
+			result = 1;
+			break;
+		}
+	}
+	return result;
+}
+
 struct keyDef *keyDefByName(char *name)
 {
 	if (!name)
@@ -449,6 +493,14 @@ int setStateFromConfigLine(struct appState *state, char *line, int linenum)
 	{
 		state->debug = 0;
 		return 0;
+	}
+	else if (strstr(line, "bypass_with_title=")) {
+	    char* start = strchr(line, '=') + 1;
+	    if (*start)
+	    {
+	        addTitleBypasstoState(state, start);
+		return 0;
+	    }
 	}
 
 	// Handle key remappings
@@ -500,7 +552,7 @@ void getConfigPath(wchar_t *path, int maxLen)
 int initStateFromConfig(struct appState *state, wchar_t *path)
 {
 	FILE *fs;
-	char line[40];
+	char line[128];
 
 	if (_wfopen_s(&fs, path, L"r") > 0)
 	{
@@ -510,7 +562,7 @@ int initStateFromConfig(struct appState *state, wchar_t *path)
 	}
 
 	int linenum = 1;
-	while (fgets(line, 40, fs))
+	while (fgets(line, sizeof(line), fs))
 	{
 		trimnewline(line);
 		if (line[0] == '\0')
@@ -568,11 +620,19 @@ int keyCodeMatchesInput(int keyCode, const KBDLLHOOKSTRUCT *key)
 		: keyCode == key->scanCode;
 }
 
+int foregroundWindowShouldBeBypassed(struct appState* state)
+{
+	char buf[128];
+	HWND hwnd = GetForegroundWindow();
+	GetWindowTextA(hwnd, buf, sizeof(buf));
+	return windowTitleShouldBeBypassed(&g_state, buf);
+}
+
 LRESULT CALLBACK
 mouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-	// Required per Microsoft documentation
-	if (nCode != HC_ACTION)
+	// Required per Microsoft documentation & also, bypass if required
+	if (nCode != HC_ACTION || foregroundWindowShouldBeBypassed(&g_state))
 		return CallNextHookEx(g_mouseHook, nCode, wParam, lParam);
 
 	// If mouse is scrolled or pressed down we update the held down keys to with_other
@@ -601,8 +661,8 @@ mouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 LRESULT CALLBACK
 keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-	// Required per Microsoft documentation
-	if (nCode != HC_ACTION)
+	// Required per Microsoft documentation & also, bypass if required
+	if (nCode != HC_ACTION || foregroundWindowShouldBeBypassed(&g_state))
 		return CallNextHookEx(g_keyboardHook, nCode, wParam, lParam);
 
 	const KBDLLHOOKSTRUCT *inputKey = (KBDLLHOOKSTRUCT *)lParam;
@@ -625,7 +685,7 @@ keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 	if (g_state.debug)
 	{
-		printf("Logged keypress (Injected: %i, vkCode: %lu, scanCode: %lu, flags: %lu, dwExtraInfo: %lu\n",
+		printf("Logged keypress (Injected: %i, vkCode: %lu, scanCode: %lu, flags: %lu, dwExtraInfo: %lu)\n",
 			((inputKey->flags & LLKHF_INJECTED) == LLKHF_INJECTED),
 			inputKey->vkCode,
 			inputKey->scanCode,
