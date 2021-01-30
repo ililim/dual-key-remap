@@ -43,6 +43,7 @@ struct keyState
 	int altRemapKey;
 	int whenAlone;
 	int withOther;
+	int aloneKeyAsRemapWhenHeld;
 	enum remappedKeyState state;
 
 	struct keyState *next;
@@ -478,9 +479,14 @@ int setStateFromConfigLine(struct appState *state, char *line, int linenum)
 		if (state->keysTail)
 			state->keysTail->withOther = keyDef->code;
 	}
+	else if (strstr(line, "alone_key_as_remap_when_held="))
+	{
+		if (state->keysTail)
+			state->keysTail->aloneKeyAsRemapWhenHeld = atoi(keyName);
+	}
 	else
 	{
-		printf("Cannot parse line %i in config: '%s'.\nMake sure you've used a valid config option, and that that there is no extraneous whitespace. Supported options: 'debug', 'remap_key', 'when_alone', 'with_other'.\n",
+		printf("Cannot parse line %i in config: '%s'.\nMake sure you've used a valid config option, and that that there is no extraneous whitespace. Supported options: 'debug', 'remap_key', 'when_alone', 'with_other', 'alone_key_as_remap_when_held'.\n",
 			linenum,
 			line);
 		return 1;
@@ -638,18 +644,27 @@ keyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	if (!isRemappedKey || inputKey->dwExtraInfo == INJECTED_KEY_ID)
 	{
 		// If we are pressing a key, we must update the state of all held down remapped keys
-		if (inputUpDown == INPUT_KEYDOWN)
+		struct keyState *keyState = g_state.keysHead;
+		while (keyState)
 		{
-			struct keyState *keyState = g_state.keysHead;
-			while (keyState)
+			// map the remapped key back to itself if the pressed key is the target key
+			if (keyState->aloneKeyAsRemapWhenHeld)
 			{
-				if (keyState->state == HELD_DOWN_ALONE)
+				if (keyState->state != NOT_HELD_DOWN && keyCodeMatchesInput(keyState->whenAlone, inputKey))
+				{
+					sendKeyEvent(keyState->remapKey, inputUpDown);
+					return 1;
+				}
+			}
+			if (keyState->state == HELD_DOWN_ALONE)
+			{
+				if (inputUpDown == INPUT_KEYDOWN)
 				{
 					keyState->state = HELD_DOWN_WITH_OTHER;
 					sendKeyEvent(keyState->withOther, INPUT_KEYDOWN);
-				}
-				keyState = keyState->next;
+				}					
 			}
+			keyState = keyState->next;
 		}
 
 		// Exit early, allowing others to process the key
