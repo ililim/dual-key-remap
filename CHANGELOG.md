@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.6 (WIP)
+### Changed
+- Improve how we send inputs, Dual-key-remap should now work in more applications and locales!
+- Removed virtual keycodes as all key inputs are now sent as virtual keycodes. If you relied on this previously to make the app work you can use the regular keycodes again.
+- Renamed and cleaned up the available key codes. You may have to update your config.
+- If a keycode that you need is missing open a new issue to report it.
+### Fixed
+- Remappings bound to left or right modifiers will no longer be triggered by both left and right keys.
+
 ## 0.5
 ### Changed
 - Mouse scrolling will now trigger the `with_other` modifier (`CTRL` by default).
