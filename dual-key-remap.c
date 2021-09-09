@@ -102,7 +102,7 @@ void put_config_path(wchar_t * path)
 {
     HMODULE module = GetModuleHandleW(NULL);
     GetModuleFileNameW(module, path, MAX_PATH);
-    path[wcslen(path) - strlen("main.exe")] = '\0';
+    path[wcslen(path) - strlen("dual-key-remap.exe")] = '\0';
     wcscat(path, L"config.txt");
 }
 
