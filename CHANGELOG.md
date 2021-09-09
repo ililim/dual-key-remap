@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Improve how we send inputs, Dual-key-remap should now work in more applications and locales!
 - Removed virtual keycodes as all key inputs are now sent as virtual keycodes. If you relied on this previously to make the app work you can use the regular keycodes again.
+- Dual key remap will no longer try to automatically remap both modifiers keys if you don't specify whether it's the left or the right key. If you don't provide a side then it will rebind the LEFT key by default. For those that need both keys remapped, you can create two remappings in your config.
 - Renamed and cleaned up the available key codes. You may have to update your config.
 - If a keycode that you need is missing open a new issue to report it.
 ### Fixed
