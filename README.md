@@ -33,9 +33,9 @@ Certain applications might require shortcuts such as Shift+Escape. These can sti
 
 The reason this works is because Dual Key Remap decides which key to send depending on whether any other keys where pressed _after_ CapsLock was held down, so tapping CapsLock as the last part of a key sequence will always send Escape.
 
-### Adminstrator access
+### Administrator access
 
-If launched normally Dual Key Remap will not be able to rebind your key inputs while you're viewing escalated/adminstrator applications (e.g. Task Manager). To make your rebindings work in those contexts make sure to run Dual Key Remap as adminstrator. You can also create an [elevated shorcut](https://winaero.com/create-elevated-shortcut-to-skip-uac-prompt-in-windows-10/) for Dual Key Remap.
+If launched normally Dual Key Remap will not be able to rebind your key inputs while you're viewing escalated/administrator applications (e.g. Task Manager). To make your rebindings work in those contexts make sure to run Dual Key Remap as administrator. You can also create an [elevated shorcut](https://winaero.com/create-elevated-shortcut-to-skip-uac-prompt-in-windows-10/) for Dual Key Remap.
 
 ### Rebind keys during login / before Windows loads
 
