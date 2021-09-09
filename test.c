@@ -31,7 +31,6 @@ register_output(int scan_code, int virt_code, enum Direction dir)
     } else {
         g_output_list = output;
     }
-    // print_action("   OUT", virt_code, dir);
 }
 
 // Simulate input and pass it to our handler. If key is not swallowed, register
@@ -87,7 +86,7 @@ void IN(KEY_DEF * key, enum Direction dir)
 void SEE(KEY_DEF * key, enum Direction dir)
 {
     struct Output * head = g_output_list;
-    const char * msg = malloc(255);
+    char * msg = malloc(255);
     sprintf(msg, "Expected top output of %s %s but found:\n", key->name, fmt_dir(dir));
     if (!head) {
         dump_outputs((char *)msg);
@@ -146,6 +145,7 @@ void main()
     assert(0 == load_config_line("remap_key=ESCAPE", 999));
     assert(("Incomplete key", 1 == load_config_line("remap_key=ESCAPE", 4)));
     reset_config();
+    OK();
 
     SECTION("Registers remappings from config");
     assert(("debug off by default", g_debug == 0));
