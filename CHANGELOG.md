@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## 0.6 (WIP)
+## 0.6
 ### Changed
 - Improve how we send inputs, Dual-key-remap should now work in more applications and locales!
 - Removed virtual keycodes as all key inputs are now sent as virtual keycodes. If you relied on this previously to make the app work you can use the regular keycodes again.
