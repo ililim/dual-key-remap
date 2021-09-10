@@ -167,12 +167,9 @@ int handle_input(int scan_code, int virt_code, int direction, int is_injected)
     struct Remap * remap_for_input = find_remap_for_virt_code(virt_code);
 
     if (remap_for_input && !is_injected) {
-        if (direction == DOWN) {
-            return event_remapped_key_down(remap_for_input);
-        }
-        else {
-            return event_remapped_key_up(remap_for_input);
-        }
+        return direction == DOWN
+            ? event_remapped_key_down(remap_for_input)
+            : event_remapped_key_up(remap_for_input);
     } else {
         return event_other_input();
     }
