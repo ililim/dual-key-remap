@@ -130,10 +130,10 @@ int main()
     g_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_callback, NULL, 0);
 
     // No errors, hide the console window if we're not debugging
-	if (!g_debug)
-	{
-		ShowWindow(window, SW_HIDE);
-	}
+    if (!g_debug)
+    {
+        ShowWindow(window, SW_HIDE);
+    }
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0) > 0)
