@@ -26,6 +26,11 @@ typedef const struct KeyDef KEY_DEF;
 #define VK_SPACE 0x20
 #define VK_TAB 0x09
 
+#define VK_LEFT 0x25
+#define VK_UP 0x26
+#define VK_RIGHT 0x27
+#define VK_DOWN 0x28
+
 #define VK_F1 0x70
 #define VK_F2 0x71
 #define VK_F3 0x72
@@ -39,43 +44,43 @@ typedef const struct KeyDef KEY_DEF;
 #define VK_F11 0x7A
 #define VK_F12 0x7B
 
-#define VK_0 0x30
-#define VK_1 0x31
-#define VK_2 0x32
-#define VK_3 0x33
-#define VK_4 0x34
-#define VK_5 0x35
-#define VK_6 0x36
-#define VK_7 0x37
-#define VK_8 0x38
-#define VK_9 0x39
+#define VK_KEY_0 0x30
+#define VK_KEY_1 0x31
+#define VK_KEY_2 0x32
+#define VK_KEY_3 0x33
+#define VK_KEY_4 0x34
+#define VK_KEY_5 0x35
+#define VK_KEY_6 0x36
+#define VK_KEY_7 0x37
+#define VK_KEY_8 0x38
+#define VK_KEY_9 0x39
 
-#define VK_A 0x41
-#define VK_B 0x42
-#define VK_C 0x43
-#define VK_D 0x44
-#define VK_E 0x45
-#define VK_F 0x46
-#define VK_G 0x47
-#define VK_H 0x48
-#define VK_I 0x49
-#define VK_J 0x4A
-#define VK_K 0x4B
-#define VK_L 0x4C
-#define VK_M 0x4D
-#define VK_N 0x4E
-#define VK_O 0x4F
-#define VK_P 0x50
-#define VK_Q 0x51
-#define VK_R 0x52
-#define VK_S 0x53
-#define VK_T 0x54
-#define VK_U 0x55
-#define VK_V 0x56
-#define VK_W 0x57
-#define VK_X 0x58
-#define VK_Y 0x59
-#define VK_Z 0x5A
+#define VK_KEY_A 0x41
+#define VK_KEY_B 0x42
+#define VK_KEY_C 0x43
+#define VK_KEY_D 0x44
+#define VK_KEY_E 0x45
+#define VK_KEY_F 0x46
+#define VK_KEY_G 0x47
+#define VK_KEY_H 0x48
+#define VK_KEY_I 0x49
+#define VK_KEY_J 0x4A
+#define VK_KEY_K 0x4B
+#define VK_KEY_L 0x4C
+#define VK_KEY_M 0x4D
+#define VK_KEY_N 0x4E
+#define VK_KEY_O 0x4F
+#define VK_KEY_P 0x50
+#define VK_KEY_Q 0x51
+#define VK_KEY_R 0x52
+#define VK_KEY_S 0x53
+#define VK_KEY_T 0x54
+#define VK_KEY_U 0x55
+#define VK_KEY_V 0x56
+#define VK_KEY_W 0x57
+#define VK_KEY_X 0x58
+#define VK_KEY_Y 0x59
+#define VK_KEY_Z 0x5A
 
 #define VK_INSERT 0x2D
 #define VK_DELETE 0x2E
@@ -84,14 +89,19 @@ typedef const struct KeyDef KEY_DEF;
 #define VK_PAGE_UP 0x21
 #define VK_PAGE_DOWN 0x22
 
+#define VK_PRINT_SCREEN 0x2C
+#define VK_NUMLOCK 0x90
+#define VK_SCROLLLOCK 0x91
+#define VK_PAUSE 0x13
+
 #define VK_PLUS 0xBB
 #define VK_COMMA 0xBC
 #define VK_MINUS 0xBD
 #define VK_PERIOD 0xBE
 
-#define VK_OEM_1 0xBA // ;: key on US keyboards
-#define VK_OEM_2 0xBF // /? key on US keyboards
-#define VK_OEM_3 0xC0 // `~ key on US keyboards
+#define VK_US_SEMI 0xBA // ;: key on US keyboards
+#define VK_US_SLASH 0xBF // /? key on US keyboards
+#define VK_US_TILDE 0xC0 // `~ key on US keyboards
 
 #define SK_LEFT_CTRL 0x001D
 #define SK_RIGHT_CTRL 0xE01D
@@ -109,6 +119,11 @@ typedef const struct KeyDef KEY_DEF;
 #define SK_SPACE 0x39
 #define SK_TAB 0x0F
 
+#define SK_UP 0X48
+#define SK_LEFT 0X4B
+#define SK_RIGHT 0X4D
+#define SK_DOWN 0X50
+
 #define SK_F1 0x3B
 #define SK_F2 0x3C
 #define SK_F3 0x3D
@@ -122,43 +137,43 @@ typedef const struct KeyDef KEY_DEF;
 #define SK_F11 0x57
 #define SK_F12 0x58
 
-#define SK_0 0x0B
-#define SK_1 0x02
-#define SK_2 0x03
-#define SK_3 0x04
-#define SK_4 0x05
-#define SK_5 0x06
-#define SK_6 0x07
-#define SK_7 0x08
-#define SK_8 0x09
-#define SK_9 0x0A
+#define SK_KEY_0 0x0B
+#define SK_KEY_1 0x02
+#define SK_KEY_2 0x03
+#define SK_KEY_3 0x04
+#define SK_KEY_4 0x05
+#define SK_KEY_5 0x06
+#define SK_KEY_6 0x07
+#define SK_KEY_7 0x08
+#define SK_KEY_8 0x09
+#define SK_KEY_9 0x0A
 
-#define SK_A 0x1E
-#define SK_B 0x30
-#define SK_C 0x2E
-#define SK_D 0x20
-#define SK_E 0x12
-#define SK_F 0x21
-#define SK_G 0x22
-#define SK_H 0x23
-#define SK_I 0x17
-#define SK_J 0x24
-#define SK_K 0x25
-#define SK_L 0x26
-#define SK_M 0x32
-#define SK_N 0x31
-#define SK_O 0x18
-#define SK_P 0x19
-#define SK_Q 0x10
-#define SK_R 0x13
-#define SK_S 0x1F
-#define SK_T 0x14
-#define SK_U 0x16
-#define SK_V 0x2F
-#define SK_W 0x11
-#define SK_X 0x2D
-#define SK_Y 0x15
-#define SK_Z 0x2C
+#define SK_KEY_A 0x1E
+#define SK_KEY_B 0x30
+#define SK_KEY_C 0x2E
+#define SK_KEY_D 0x20
+#define SK_KEY_E 0x12
+#define SK_KEY_F 0x21
+#define SK_KEY_G 0x22
+#define SK_KEY_H 0x23
+#define SK_KEY_I 0x17
+#define SK_KEY_J 0x24
+#define SK_KEY_K 0x25
+#define SK_KEY_L 0x26
+#define SK_KEY_M 0x32
+#define SK_KEY_N 0x31
+#define SK_KEY_O 0x18
+#define SK_KEY_P 0x19
+#define SK_KEY_Q 0x10
+#define SK_KEY_R 0x13
+#define SK_KEY_S 0x1F
+#define SK_KEY_T 0x14
+#define SK_KEY_U 0x16
+#define SK_KEY_V 0x2F
+#define SK_KEY_W 0x11
+#define SK_KEY_X 0x2D
+#define SK_KEY_Y 0x15
+#define SK_KEY_Z 0x2C
 
 #define SK_INSERT 0x52
 #define SK_DELETE 0x53
@@ -172,9 +187,9 @@ typedef const struct KeyDef KEY_DEF;
 #define SK_MINUS 0x0c
 #define SK_PERIOD 0x34
 
-#define SK_OEM_1 0x27 // ;: key on US keyboards
-#define SK_OEM_2 0x35 // /? key on US keyboards
-#define SK_OEM_3 0x29 // `~ key on US keyboards
+#define SK_US_SEMI 0x27  // ;: key on US keyboards
+#define SK_US_SLASH 0x35 // /? key on US keyboards
+#define SK_US_TILDE 0x29 // `~ key on US keyboards
 
 // The table of configurable key names and their respective codes.
 //
@@ -209,6 +224,11 @@ KEY_DEF key_table[] = {
     {"SPACE", SK_SPACE, VK_SPACE},
     {"TAB", SK_TAB, VK_TAB},
 
+    {"UP", SK_UP, VK_UP},
+    {"LEFT", SK_LEFT, VK_LEFT},
+    {"RIGHT", SK_RIGHT, VK_RIGHT},
+    {"DOWN", SK_DOWN, VK_DOWN},
+
     {"F1", SK_F1, VK_F1},
     {"F2", SK_F2, VK_F2},
     {"F3", SK_F3, VK_F3},
@@ -222,43 +242,43 @@ KEY_DEF key_table[] = {
     {"F11", SK_F11, VK_F11},
     {"F12", SK_F12, VK_F12},
 
-    {"0", SK_0, VK_0},
-    {"1", SK_1, VK_1},
-    {"2", SK_2, VK_2},
-    {"3", SK_3, VK_3},
-    {"4", SK_4, VK_4},
-    {"5", SK_5, VK_5},
-    {"6", SK_6, VK_6},
-    {"7", SK_7, VK_7},
-    {"8", SK_8, VK_8},
-    {"9", SK_9, VK_9},
+    {"KEY_0", SK_KEY_0, VK_KEY_0},
+    {"KEY_1", SK_KEY_1, VK_KEY_1},
+    {"KEY_2", SK_KEY_2, VK_KEY_2},
+    {"KEY_3", SK_KEY_3, VK_KEY_3},
+    {"KEY_4", SK_KEY_4, VK_KEY_4},
+    {"KEY_5", SK_KEY_5, VK_KEY_5},
+    {"KEY_6", SK_KEY_6, VK_KEY_6},
+    {"KEY_7", SK_KEY_7, VK_KEY_7},
+    {"KEY_8", SK_KEY_8, VK_KEY_8},
+    {"KEY_9", SK_KEY_9, VK_KEY_9},
 
-    {"A", SK_A, VK_A},
-    {"B", SK_B, VK_B},
-    {"C", SK_C, VK_C},
-    {"D", SK_D, VK_D},
-    {"E", SK_E, VK_E},
-    {"F", SK_F, VK_F},
-    {"G", SK_G, VK_G},
-    {"H", SK_H, VK_H},
-    {"I", SK_I, VK_I},
-    {"J", SK_J, VK_J},
-    {"K", SK_K, VK_K},
-    {"L", SK_L, VK_L},
-    {"M", SK_M, VK_M},
-    {"N", SK_N, VK_N},
-    {"O", SK_O, VK_O},
-    {"P", SK_P, VK_P},
-    {"Q", SK_Q, VK_Q},
-    {"R", SK_R, VK_R},
-    {"S", SK_S, VK_S},
-    {"T", SK_T, VK_T},
-    {"U", SK_U, VK_U},
-    {"V", SK_V, VK_V},
-    {"W", SK_W, VK_W},
-    {"X", SK_X, VK_X},
-    {"Y", SK_Y, VK_Y},
-    {"Z", SK_Z, VK_Z},
+    {"KEY_A", SK_KEY_A, VK_KEY_A},
+    {"KEY_B", SK_KEY_B, VK_KEY_B},
+    {"KEY_C", SK_KEY_C, VK_KEY_C},
+    {"KEY_D", SK_KEY_D, VK_KEY_D},
+    {"KEY_E", SK_KEY_E, VK_KEY_E},
+    {"KEY_F", SK_KEY_F, VK_KEY_F},
+    {"KEY_G", SK_KEY_G, VK_KEY_G},
+    {"KEY_H", SK_KEY_H, VK_KEY_H},
+    {"KEY_I", SK_KEY_I, VK_KEY_I},
+    {"KEY_J", SK_KEY_J, VK_KEY_J},
+    {"KEY_K", SK_KEY_K, VK_KEY_K},
+    {"KEY_L", SK_KEY_L, VK_KEY_L},
+    {"KEY_M", SK_KEY_M, VK_KEY_M},
+    {"KEY_N", SK_KEY_N, VK_KEY_N},
+    {"KEY_O", SK_KEY_O, VK_KEY_O},
+    {"KEY_P", SK_KEY_P, VK_KEY_P},
+    {"KEY_Q", SK_KEY_Q, VK_KEY_Q},
+    {"KEY_R", SK_KEY_R, VK_KEY_R},
+    {"KEY_S", SK_KEY_S, VK_KEY_S},
+    {"KEY_T", SK_KEY_T, VK_KEY_T},
+    {"KEY_U", SK_KEY_U, VK_KEY_U},
+    {"KEY_V", SK_KEY_V, VK_KEY_V},
+    {"KEY_W", SK_KEY_W, VK_KEY_W},
+    {"KEY_X", SK_KEY_X, VK_KEY_X},
+    {"KEY_Y", SK_KEY_Y, VK_KEY_Y},
+    {"KEY_Z", SK_KEY_Z, VK_KEY_Z},
 
     {"INSERT", SK_INSERT, VK_INSERT},
     {"DELETE", SK_DELETE, VK_DELETE},
@@ -267,14 +287,19 @@ KEY_DEF key_table[] = {
     {"PAGE_UP", SK_PAGE_UP, VK_PAGE_UP},
     {"PAGE_DOWN", SK_PAGE_DOWN, VK_PAGE_DOWN},
 
+    {"PRINT_SCREEN", 0, VK_PRINT_SCREEN},
+    {"NUMLOCK", 0, VK_NUMLOCK},
+    {"SCROLLLOCK", 0, VK_SCROLLLOCK},
+    {"PAUSE", 0, VK_PAUSE},
+
     {"PLUS", SK_PLUS, VK_PLUS},
     {"COMMA", SK_COMMA, VK_COMMA},
     {"MINUS", SK_MINUS, VK_MINUS},
     {"PERIOD", SK_PERIOD, VK_PERIOD},
 
-    {"OEM_1", SK_OEM_1, VK_OEM_1}, // ;: key on US keyboards
-    {"OEM_2", SK_OEM_2, VK_OEM_2}, // /? key on US keyboards
-    {"OEM_3", SK_OEM_3, VK_OEM_3}, // `~ key on US keyboards
+    {"US_SEMI", SK_US_SEMI, VK_US_SEMI}, // ;: key on US keyboards
+    {"US_SLASH", SK_US_SLASH, VK_US_SLASH}, // /? key on US keyboards
+    {"US_TILDE", SK_US_TILDE, VK_US_TILDE}, // `~ key on US keyboards
 };
 
 #define KEY_TABLE_LEN (sizeof(key_table) / sizeof(struct KeyDef))
