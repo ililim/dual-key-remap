@@ -223,6 +223,7 @@ int load_config_line(char * line, int linenum)
     KEY_DEF * key_def = find_key_def_by_name(key_name);
     if (!key_def) {
         printf("Config error (line %d): Invalid key name '%s'.\n", linenum, key_name);
+        printf("Key names were changed in the most recent version. Please review review the wiki for the new names!\n");
         return 1;
     }
 
