@@ -145,6 +145,7 @@ int event_remapped_key_up(struct Remap * remap)
     return 1;
 }
 
+/* @return swallow_input */
 int event_other_input()
 {
     struct Remap * remap = g_remap_list;
