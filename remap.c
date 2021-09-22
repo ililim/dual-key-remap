@@ -54,7 +54,7 @@ void log_input(int scan_code, int virt_code, int dir)
 
     KEY_DEF * key = find_key_def_by_virt_code(virt_code);
     printf("(input) %s %s [scan:0x%02x virt:0x%02x]\n",
-        key ? key->name : "KEY",
+        key ? key->name : "<NO_NAME>",
         fmt_dir(dir),
         scan_code,
         virt_code);
