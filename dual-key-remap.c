@@ -1,3 +1,6 @@
+#define VERSION "0.6"
+#define AUTHOR "ililim"
+
 #include <windows.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -109,7 +112,7 @@ void put_config_path(wchar_t * path)
 
 int main()
 {
-    printf("dual-key-remap.exe version: 0.4, author: ililim\n\n");
+    printf("dual-key-remap.exe version: %s, author: %s\n\n", VERSION, AUTHOR);
 
     HWND window = GetConsoleWindow();
     HANDLE mutex = CreateMutex(NULL, TRUE, "dual-key-remap.single-instance");
