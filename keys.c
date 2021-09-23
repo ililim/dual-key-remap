@@ -307,6 +307,8 @@ KEY_DEF key_table[] = {
 // Shortcuts to common keys (useful for debugging/testing)
 KEY_DEF * CTRL  = &key_table[0];
 KEY_DEF * SHIFT = &key_table[3];
+KEY_DEF * LSHIFT = &key_table[4];
+KEY_DEF * RSHIFT = &key_table[5];
 KEY_DEF * ALT   = &key_table[6];
 KEY_DEF * CAPS  = &key_table[12];
 KEY_DEF * ENTER = &key_table[13];

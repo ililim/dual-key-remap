@@ -83,6 +83,11 @@ void IN(KEY_DEF * key, enum Direction dir)
     user_input(key->scan_code, key->virt_code, dir);
 }
 
+void IN_MANUAL(int scan_code, int virt_code, int dir)
+{
+    user_input(scan_code, virt_code, dir);
+}
+
 void SEE(KEY_DEF * key, enum Direction dir)
 {
     struct Output * head = g_output_list;
@@ -285,6 +290,18 @@ void main()
         SEE(CTRL, UP);
         EMPTY();
     OK();
+
+    SECTION("Handle left/right modifier sending the same scan code");
+    IN_MANUAL(SK_LEFT_SHIFT, VK_LEFT_SHIFT, DOWN);
+    IN_MANUAL(SK_LEFT_SHIFT, VK_LEFT_SHIFT, UP);
+        SEE(SPACE, DOWN);
+        SEE(SPACE, UP);
+        EMPTY();
+    IN_MANUAL(SK_LEFT_SHIFT, VK_RIGHT_SHIFT, DOWN);
+    IN_MANUAL(SK_LEFT_SHIFT, VK_RIGHT_SHIFT, UP);
+        SEE(RSHIFT, DOWN);
+        SEE(RSHIFT, UP);
+        EMPTY();
 
     printf("\nGreat! All test passed successfully.");
 }
