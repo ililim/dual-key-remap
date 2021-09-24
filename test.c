@@ -92,7 +92,7 @@ void SEE(KEY_DEF * key, enum Direction dir)
 {
     struct Output * head = g_output_list;
     char * msg = malloc(255);
-    sprintf(msg, "Expected top output of %s %s but found:\n", key->name, fmt_dir(dir));
+    sprintf(msg, "Expected top output to be %s %s but found:\n", key->name, fmt_dir(dir));
     if (!head) {
         dump_outputs((char *)msg);
         assert(("NOT EMPTY", head));
