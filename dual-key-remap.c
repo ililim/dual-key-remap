@@ -36,7 +36,6 @@ void send_input(int scan_code, int virt_code, enum Direction direction)
     SendInput(1, &input, sizeof(INPUT));
 }
 
-
 LRESULT CALLBACK mouse_callback(int msg_code, WPARAM w_param, LPARAM l_param) {
     int swallow_input = 0;
 
