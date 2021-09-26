@@ -103,6 +103,8 @@ typedef const struct KeyDef KEY_DEF;
 #define VK_US_SLASH 0xBF // /? key on US keyboards
 #define VK_US_TILDE 0xC0 // `~ key on US keyboards
 
+#define MOUSE_DUMMY_VK 0xFF
+
 #define SK_LEFT_CTRL 0x001D
 #define SK_RIGHT_CTRL 0xE01D
 #define SK_LEFT_ALT 0x0038
@@ -362,6 +364,8 @@ char * friendly_virt_code_name(int code)
 
     switch (code)
     {
+    case MOUSE_DUMMY_VK:
+        return "<MOUSE INPUT>";
     case 0:
         return "<ZERO_CODE>";
     case 0x01:

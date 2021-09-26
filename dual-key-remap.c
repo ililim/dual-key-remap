@@ -49,7 +49,7 @@ LRESULT CALLBACK mouse_callback(int msg_code, WPARAM w_param, LPARAM l_param) {
         case WM_NCXBUTTONDOWN:
         case WM_XBUTTONDOWN:
             // Since no key corresponds to the mouse inputs; use a dummy input
-            swallow_input = handle_input(0, 0, 0, 0);
+            swallow_input = handle_input(0, MOUSE_DUMMY_VK, 0, 0);
         }
     }
 
