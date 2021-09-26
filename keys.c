@@ -379,7 +379,7 @@ char * friendly_virt_code_name(int code)
     case 0x05:
         return "<MOUSE_X1>";
     case 0x06:
-        return "<MOUXE_X2>";
+        return "<MOUSE_X2>";
     case 0x0C:
         return "<CLEAR>";
     case 0x10:
