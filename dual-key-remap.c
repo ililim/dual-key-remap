@@ -1,4 +1,4 @@
-#define VERSION "0.6"
+#define VERSION "0.7"
 #define AUTHOR "ililim"
 
 #include <windows.h>
