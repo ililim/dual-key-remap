@@ -50,16 +50,18 @@ By using an utility like [Sharp Keys](https://github.com/randyrants/sharpkeys) y
 
 ### Building dual-key-remap.exe
 
-Before developing any changes you will need some way of compiling and linking C code. These instructions assume you have the `cl` program setup in your cli per [Microsoft's documentation](https://msdn.microsoft.com/en-us/library/bb384838.aspx). (Although any tool for compiling and linking c code should do the trick).
+To build dual-key-remap you will need a way to compile c programs. You can follow [Microsoft's documentation](https://msdn.microsoft.com/en-us/library/bb384838.aspx) to get the required tooling setup.
 
-To compile and run the tests:
+Once that's all setup you should be able to use to the Visual C++ developer command prompt to run the following commands:
 
-```
-cl test.c && test
-```
-
-To compile the application linking the user32 library:
+Run the tests:
 
 ```
-cl dual-key-remap.c /link user32.lib
+cl .\test.c && .\test.exe
+```
+
+Build the application:
+
+```
+cl .\dual-key-remap.c /link user32.lib shell32.lib /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup
 ```
