@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.7
+### Fixed
+- Dual-key-remap will no longer show a blank console window when launched via the Windows Terminal app. This issue mainly affected Win11 users due to Terminal replacing Command Prompt as the default console application.
+- A console window will still show up if you specify `DEBUG=1` in your config.
+
 ## 0.6
 ### Changed
 - Improve how we send inputs, Dual-key-remap should now work in more applications and locales!

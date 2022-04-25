@@ -78,6 +78,22 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
     return (swallow_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
 }
 
+void create_console()
+{
+    if (AllocConsole()) {
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+        printf("== dual-key-remap (version: %s, author: %s) ==\n\n", VERSION, AUTHOR);
+    }
+}
+
+void destroy_console()
+{
+    fclose(stdout);
+    fclose(stderr);
+    FreeConsole();
+}
+
 int load_config_file(wchar_t * path)
 {
     FILE * file;
@@ -111,9 +127,9 @@ void put_config_path(wchar_t * path)
 
 int main()
 {
-    printf("dual-key-remap.exe version: %s, author: %s\n\n", VERSION, AUTHOR);
+    // Initialization may print errors to stdout, create a console to show that output.
+    create_console();
 
-    HWND window = GetConsoleWindow();
     HANDLE mutex = CreateMutex(NULL, TRUE, "dual-key-remap.single-instance");
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
@@ -131,10 +147,10 @@ int main()
     g_mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, mouse_callback, NULL, 0);
     g_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_callback, NULL, 0);
 
-    // No errors, hide the console window if we're not debugging
+    // We're all good if we got this far. Hide the console window unless we're debugging.
     if (!g_debug)
     {
-        ShowWindow(window, SW_HIDE);
+        destroy_console();
     }
 
     MSG msg;
@@ -145,7 +161,6 @@ int main()
     }
 
     end:
-        // ShowWindow(window, SW_SHOW);
         printf("\nPress any key to exit...\n");
         getch();
         return 1;
