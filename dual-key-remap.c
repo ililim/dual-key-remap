@@ -31,7 +31,8 @@ void send_input(int scan_code, int virt_code, enum Direction direction)
 
     input.ki.wScan = scan_code;
     input.ki.wVk = virt_code;
-    input.ki.dwFlags = direction == UP ? KEYEVENTF_KEYUP : 0;
+    input.ki.dwFlags = (direction == UP ? KEYEVENTF_KEYUP : 0) |
+      (scan_code>>8 == 0xE0 ? KEYEVENTF_EXTENDEDKEY : 0);
 
     SendInput(1, &input, sizeof(INPUT));
 }
