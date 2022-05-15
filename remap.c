@@ -1,8 +1,12 @@
+#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include "input.h"
 #include "keys.c"
+
+#define INJECTED_KEY_ID 0xFFC3CED7
 
 // Types
 // --------------------------------------
@@ -11,6 +15,8 @@ enum State {
     IDLE,
     HELD_DOWN_ALONE,
     HELD_DOWN_WITH_OTHER,
+    TAPPED,
+    TAP,
 };
 
 struct Remap
@@ -20,6 +26,7 @@ struct Remap
     KEY_DEF * to_with_other;
 
     enum State state;
+    DWORD time;
 
     struct Remap * next;
 };
@@ -28,6 +35,10 @@ struct Remap
 // --------------------------------------
 
 int g_debug = 0;
+int g_tap_timeout = 0;
+int g_doublepress_timeout = 0;
+int g_repeat_delay = 500;
+int g_repeat_period = 50;
 struct Remap * g_remap_list;
 struct Remap * g_remap_parsee = NULL;
 
@@ -41,7 +52,7 @@ char * fmt_dir(enum Direction dir) {
 int prev_dbg_scan_code = 0;
 int prev_dbg_virt_code = 0;
 int prev_dbg_direction = 0;
-void log_input(int scan_code, int virt_code, int dir)
+void log_input(int scan_code, int virt_code, int dir, DWORD flags, ULONG_PTR dwExtraInfo)
 {
     if (!g_debug) return;
     // To avoid duplicate logs, only log if key input changed
@@ -52,11 +63,13 @@ void log_input(int scan_code, int virt_code, int dir)
     prev_dbg_virt_code = virt_code;
     prev_dbg_direction = dir;
 
-    printf("(input) %s %s [scan:0x%02x virt:0x%02x]\n",
-        friendly_virt_code_name(virt_code),
-        fmt_dir(dir),
-        scan_code,
-        virt_code);
+    printf("(input) %s %s [scan:0x%02x virt:0x%02x flags:0x%01x dwExtraInfo:0x%Ix]\n",
+           friendly_virt_code_name(virt_code),
+           fmt_dir(dir),
+           scan_code,
+           virt_code,
+           flags,
+           dwExtraInfo);
 }
 
 char * prev_event;
@@ -86,6 +99,7 @@ struct Remap * new_remap(KEY_DEF * from, KEY_DEF * to_when_alone, KEY_DEF * to_w
     remap->to_when_alone = to_when_alone;
     remap->to_with_other = to_with_other;
     remap->state = IDLE;
+    remap->time = 0;
     remap->next = NULL;
     return remap;
 }
@@ -119,37 +133,95 @@ void send_key_def_input(KEY_DEF * key_def, enum Direction dir)
     send_input(key_def->scan_code, key_def->virt_code, dir);
 }
 
+HANDLE gDoneEvent;
+HANDLE hTimer = NULL;
+
+VOID CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired)
+{
+    struct Remap * remap = lpParam;
+    if (remap->state == TAP) {
+        send_key_def_input(remap->to_when_alone, DOWN);
+    } else {
+        SetEvent(gDoneEvent);
+    }
+}
+
 /* @return swallow_input */
-int event_remapped_key_down(struct Remap * remap)
+int event_remapped_key_down(struct Remap * remap, DWORD time)
 {
     log_event("event_remapped_key_down");
     if (remap->state == IDLE) {
+        remap->time = time;
         remap->state = HELD_DOWN_ALONE;
+    } else if (remap->state == TAPPED) {
+        if ((g_doublepress_timeout > 0) && (time - remap->time < g_doublepress_timeout)) {
+            remap->state = TAP;
+            send_key_def_input(remap->to_when_alone, DOWN);
+            if (g_repeat_period > 0) {
+                gDoneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+                if (NULL == gDoneEvent) {
+                    printf("CreateEvent failed (%d)\n", GetLastError());
+                    return 1;
+                }
+                if (!CreateTimerQueueTimer(&hTimer, NULL, (WAITORTIMERCALLBACK)TimerRoutine,
+                                           remap, g_repeat_delay, g_repeat_period, 0)) {
+                    printf("CreateTimerQueueTimer failed (%d)\n", GetLastError());
+                    return 3;
+                }
+            }
+        } else {
+            remap->time = time;
+            remap->state = HELD_DOWN_ALONE;
+        }
+        //    } else { /* recovery wrong case */
+        //        remap->state = TAP;
+        //        send_key_def_input(remap->to_with_other, UP);
+        //        send_key_def_input(remap->to_when_alone, DOWN);
     }
     return 1;
 }
 
 /* @return swallow_input */
-int event_remapped_key_up(struct Remap * remap)
+int event_remapped_key_up(struct Remap * remap, DWORD time)
 {
     log_event("event_remapped_key_up");
     if (remap->state == HELD_DOWN_WITH_OTHER) {
         remap->state = IDLE;
         send_key_def_input(remap->to_with_other, UP);
-    } else {
-        remap->state = IDLE;
-        send_key_def_input(remap->to_when_alone, DOWN);
+    } else if (remap->state == HELD_DOWN_ALONE) {
+        if ((g_tap_timeout == 0) || (time - remap->time < g_tap_timeout)) {
+            remap->time = time;
+            remap->state = TAPPED;
+            send_key_def_input(remap->to_when_alone, DOWN);
+            send_key_def_input(remap->to_when_alone, UP);
+        } else {
+            remap->state = IDLE;
+        }
+    } else if (remap->state == TAP) {
+        remap->time = time;
+        remap->state = TAPPED;
+        if (hTimer) {
+            if (WaitForSingleObject(gDoneEvent, INFINITE) != WAIT_OBJECT_0)
+                printf("WaitForSingleObject failed (%d)\n", GetLastError());
+            CloseHandle(gDoneEvent);
+            if (!DeleteTimerQueueTimer(NULL, hTimer, NULL))
+                printf("DeleteTimerQueueTimer failed (%d)\n", GetLastError());
+        }
         send_key_def_input(remap->to_when_alone, UP);
+        //    } else { /* recovery wrong case */
+        //        remap->state = IDLE;
+        //        send_key_def_input(remap->to_with_other, UP);
+        //        send_key_def_input(remap->to_when_alone, UP);
     }
     return 1;
 }
 
 /* @return swallow_input */
-int event_other_input()
+int event_other_input(DWORD time)
 {
     struct Remap * remap = g_remap_list;
     while(remap) {
-        if (remap->state == HELD_DOWN_ALONE) {
+        if (remap->state == HELD_DOWN_ALONE || remap->state == HELD_DOWN_WITH_OTHER) {
             remap->state = HELD_DOWN_WITH_OTHER;
             send_key_def_input(remap->to_with_other, DOWN);
         }
@@ -160,17 +232,22 @@ int event_other_input()
 
 
 /* @return swallow_input */
-int handle_input(int scan_code, int virt_code, int direction, int is_injected)
+int handle_input(int scan_code, int virt_code, int direction, DWORD time, DWORD flags, ULONG_PTR dwExtraInfo)
 {
-    if (!is_injected) log_input(scan_code, virt_code, direction);
+    int is_injected = dwExtraInfo == INJECTED_KEY_ID;
+    if (!is_injected) log_input(scan_code, virt_code, direction, flags, dwExtraInfo);
     struct Remap * remap_for_input = find_remap_for_virt_code(virt_code);
 
-    if (remap_for_input && !is_injected) {
-        return direction == DOWN
-            ? event_remapped_key_down(remap_for_input)
-            : event_remapped_key_up(remap_for_input);
+    if (!(LLKHF_INJECTED & flags)) {
+      if (remap_for_input) {
+        return (LLKHF_UP & flags) ?
+          event_remapped_key_up(remap_for_input, time) :
+          event_remapped_key_down(remap_for_input, time);
+      } else {
+        return event_other_input(time);
+      }
     } else {
-        return event_other_input();
+      return 0;
     }
 }
 
@@ -201,12 +278,27 @@ int load_config_line(char * line, int linenum)
     }
 
     // Handle config declaration
-    if (strstr(line, "debug=1")) {
-        g_debug = 1;
+    if (sscanf(line, "debug=%d", &g_debug)) {
+        if (g_debug == 1) {
+            return 0;
+        } else {
+            g_debug = 0;
+        }
+    }
+
+    if (sscanf(line, "tap_timeout=%d", &g_tap_timeout)) {
         return 0;
     }
-    if (strstr(line, "debug=0")) {
-        g_debug = 0;
+
+    if (sscanf(line, "doublepress_timeout=%d", &g_doublepress_timeout)) {
+        return 0;
+    }
+
+    if (sscanf(line, "repeat_delay=%d", &g_repeat_delay)) {
+        return 0;
+    }
+
+    if (sscanf(line, "repeat_period=%d", &g_repeat_period)) {
         return 0;
     }
 

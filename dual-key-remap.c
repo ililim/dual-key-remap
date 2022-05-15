@@ -50,7 +50,7 @@ LRESULT CALLBACK mouse_callback(int msg_code, WPARAM w_param, LPARAM l_param) {
         case WM_NCXBUTTONDOWN:
         case WM_XBUTTONDOWN:
             // Since no key corresponds to the mouse inputs; use a dummy input
-            swallow_input = handle_input(0, MOUSE_DUMMY_VK, 0, 0);
+            swallow_input = handle_input(0, MOUSE_DUMMY_VK, 0, 0, 0, 0);
         }
     }
 
@@ -67,12 +67,13 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
         enum Direction direction = (w_param == WM_KEYDOWN || w_param == WM_SYSKEYDOWN)
             ? DOWN
             : UP;
-        int is_injected = data->dwExtraInfo == INJECTED_KEY_ID;
         swallow_input = handle_input(
             data->scanCode,
             data->vkCode,
             direction,
-            is_injected
+            data->time,
+            data->flags,
+            data->dwExtraInfo
         );
     }
 
@@ -84,7 +85,7 @@ void create_console()
     if (AllocConsole()) {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
-        printf("== dual-key-remap (version: %s, author: %s) ==\n\n", VERSION, AUTHOR);
+        printf("== dual-key-remap (version: %s, author: %s, adapted by ulixxe) ==\n\n", VERSION, AUTHOR);
     }
 }
 
