@@ -34,44 +34,52 @@ struct Remap * g_remap_parsee = NULL;
 // Debug Logging
 // --------------------------------------
 
-char * fmt_dir(enum Direction dir) {
-    return dir ? "DOWN" : "UP  ";
+char * fmt_dir(enum Direction dir)
+{
+    return dir ? "DOWN" : "UP";
 }
 
-int prev_dbg_scan_code = 0;
-int prev_dbg_virt_code = 0;
-int prev_dbg_direction = 0;
-void log_input(int scan_code, int virt_code, int dir)
+int log_indent_level = 0;
+int log_counter = 1;
+void print_log_prefix()
+{
+    printf("\n%i.", log_counter++);
+    for (int i = 0; i < log_indent_level; i++)
+    {
+        printf("\t");
+    }
+}
+
+void log_handle_input_start(int scan_code, int virt_code, int dir, int is_injected)
 {
     if (!g_debug) return;
-    // To avoid duplicate logs, only log if key input changed
-    if (prev_dbg_scan_code == prev_dbg_scan_code
-        && prev_dbg_virt_code == virt_code
-        && prev_dbg_direction == dir) return;
-    prev_dbg_scan_code = scan_code;
-    prev_dbg_virt_code = virt_code;
-    prev_dbg_direction = dir;
-
-    printf("(input) %s %s [scan:0x%02x virt:0x%02x]\n",
+    print_log_prefix();
+    printf("[%s] %s %s (scan:0x%02x virt:0x%02x)",
+        is_injected ? "output" : "input",
         friendly_virt_code_name(virt_code),
         fmt_dir(dir),
         scan_code,
         virt_code);
+    log_indent_level++;
 }
 
-char * prev_event;
-void log_event(char * event)
+void log_handle_input_end(int scan_code, int virt_code, int dir, int is_injected, int block_input)
 {
     if (!g_debug) return;
-    if (prev_event == event) return;
-    prev_event = event;
-    printf("(event) %s\n", event);
+    log_indent_level--;
+    if (block_input) {
+        print_log_prefix();
+        printf("#blocked# %s %s",
+            friendly_virt_code_name(virt_code),
+            fmt_dir(dir));
+    }
 }
 
 void log_send(KEY_DEF * key, int dir)
 {
     if (!g_debug) return;
-    printf("(send) %s %s\n",
+    print_log_prefix();
+    printf("=sending= %s %s",
         key ? key->name : "???",
         fmt_dir(dir));
 }
