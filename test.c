@@ -33,12 +33,12 @@ register_output(int scan_code, int virt_code, enum Direction dir)
     }
 }
 
-// Simulate input and pass it to our handler. If key is not swallowed, register
+// Simulate input and pass it to our handler. If key is not blocked, register
 // it for later test inspection.
 void simulate_input(int scan_code, int virt_code, enum Direction dir, int is_injected)
 {
-    int swallow_input = handle_input(scan_code, virt_code, dir, is_injected);
-    if (!swallow_input) {
+    int block_input = handle_input(scan_code, virt_code, dir, is_injected);
+    if (!block_input) {
         register_output(scan_code, virt_code, dir);
     }
 }

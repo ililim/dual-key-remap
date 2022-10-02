@@ -37,7 +37,7 @@ void send_input(int scan_code, int virt_code, enum Direction direction)
 }
 
 LRESULT CALLBACK mouse_callback(int msg_code, WPARAM w_param, LPARAM l_param) {
-    int swallow_input = 0;
+    int block_input = 0;
 
     // Per MS docs we should only act for HC_ACTION's
     if (msg_code == HC_ACTION) {
@@ -49,16 +49,16 @@ LRESULT CALLBACK mouse_callback(int msg_code, WPARAM w_param, LPARAM l_param) {
         case WM_NCXBUTTONDOWN:
         case WM_XBUTTONDOWN:
             // Since no key corresponds to the mouse inputs; use a dummy input
-            swallow_input = handle_input(0, MOUSE_DUMMY_VK, 0, 0);
+            block_input = handle_input(0, MOUSE_DUMMY_VK, 0, 0);
         }
     }
 
-    return (swallow_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
+    return (block_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
 }
 
 LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
 {
-    int swallow_input = 0;
+    int block_input = 0;
 
     // Per MS docs we should only act for HC_ACTION's
     if (msg_code == HC_ACTION) {
@@ -67,7 +67,7 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
             ? DOWN
             : UP;
         int is_injected = data->dwExtraInfo == INJECTED_KEY_ID;
-        swallow_input = handle_input(
+        block_input = handle_input(
             data->scanCode,
             data->vkCode,
             direction,
@@ -75,7 +75,7 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
         );
     }
 
-    return (swallow_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
+    return (block_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
 }
 
 void create_console()

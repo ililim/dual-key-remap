@@ -119,20 +119,18 @@ void send_key_def_input(KEY_DEF * key_def, enum Direction dir)
     send_input(key_def->scan_code, key_def->virt_code, dir);
 }
 
-/* @return swallow_input */
+/* @return block_input */
 int event_remapped_key_down(struct Remap * remap)
 {
-    log_event("event_remapped_key_down");
     if (remap->state == IDLE) {
         remap->state = HELD_DOWN_ALONE;
     }
     return 1;
 }
 
-/* @return swallow_input */
+/* @return block_input */
 int event_remapped_key_up(struct Remap * remap)
 {
-    log_event("event_remapped_key_up");
     if (remap->state == HELD_DOWN_WITH_OTHER) {
         remap->state = IDLE;
         send_key_def_input(remap->to_with_other, UP);
@@ -144,7 +142,7 @@ int event_remapped_key_up(struct Remap * remap)
     return 1;
 }
 
-/* @return swallow_input */
+/* @return block_input */
 int event_other_input()
 {
     struct Remap * remap = g_remap_list;
@@ -159,19 +157,23 @@ int event_other_input()
 }
 
 
-/* @return swallow_input */
+/* @return block_input */
 int handle_input(int scan_code, int virt_code, int direction, int is_injected)
 {
-    if (!is_injected) log_input(scan_code, virt_code, direction);
-    struct Remap * remap_for_input = find_remap_for_virt_code(virt_code);
+    log_handle_input_start(scan_code, virt_code, direction, is_injected);
+    // Note: injected keys are never remapped to avoid complex nested scenarios
+    struct Remap * remap_for_input = is_injected ? NULL : find_remap_for_virt_code(virt_code);
+    int block_input = 0;
 
-    if (remap_for_input && !is_injected) {
-        return direction == DOWN
+    if (!remap_for_input) {
+        block_input = event_other_input(scan_code, virt_code, direction);
+    } else {
+        block_input = direction == DOWN
             ? event_remapped_key_down(remap_for_input)
             : event_remapped_key_up(remap_for_input);
-    } else {
-        return event_other_input();
     }
+    log_handle_input_end(scan_code, virt_code, direction, is_injected, block_input);
+    return block_input;
 }
 
 // Config
