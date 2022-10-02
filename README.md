@@ -57,7 +57,7 @@ Once that's all setup you should be able to use to the Visual C++ developer comm
 Run the tests:
 
 ```
-cl .\test.c && .\test.exe
+cl .\test.c  && .\test.exe
 ```
 
 Build the application:
