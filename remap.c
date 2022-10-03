@@ -43,7 +43,7 @@ int log_indent_level = 0;
 int log_counter = 1;
 void print_log_prefix()
 {
-    printf("\n%i.", log_counter++);
+    printf("\n%03d. ", log_counter++);
     for (int i = 0; i < log_indent_level; i++)
     {
         printf("\t");
@@ -69,17 +69,18 @@ void log_handle_input_end(int scan_code, int virt_code, int dir, int is_injected
     log_indent_level--;
     if (block_input) {
         print_log_prefix();
-        printf("#blocked# %s %s",
+        printf("#blocked-input# %s %s",
             friendly_virt_code_name(virt_code),
             fmt_dir(dir));
     }
 }
 
-void log_send(KEY_DEF * key, int dir)
+void log_send_input(char * remap_name, KEY_DEF * key, int dir)
 {
     if (!g_debug) return;
     print_log_prefix();
-    printf("=sending= %s %s",
+    printf("(sending:%s) %s %s",
+        remap_name,
         key ? key->name : "???",
         fmt_dir(dir));
 }
@@ -121,9 +122,9 @@ struct Remap * find_remap_for_virt_code(int virt_code)
     return NULL;
 }
 
-void send_key_def_input(KEY_DEF * key_def, enum Direction dir)
+void send_key_def_input(char * input_name, KEY_DEF * key_def, enum Direction dir)
 {
-    log_send(key_def, dir);
+    log_send_input(input_name, key_def, dir);
     send_input(key_def->scan_code, key_def->virt_code, dir);
 }
 
@@ -141,11 +142,11 @@ int event_remapped_key_up(struct Remap * remap)
 {
     if (remap->state == HELD_DOWN_WITH_OTHER) {
         remap->state = IDLE;
-        send_key_def_input(remap->to_with_other, UP);
+        send_key_def_input("with_other", remap->to_with_other, UP);
     } else {
         remap->state = IDLE;
-        send_key_def_input(remap->to_when_alone, DOWN);
-        send_key_def_input(remap->to_when_alone, UP);
+        send_key_def_input("when_alone", remap->to_when_alone, DOWN);
+        send_key_def_input("when_alone", remap->to_when_alone, UP);
     }
     return 1;
 }
@@ -157,7 +158,7 @@ int event_other_input()
     while(remap) {
         if (remap->state == HELD_DOWN_ALONE) {
             remap->state = HELD_DOWN_WITH_OTHER;
-            send_key_def_input(remap->to_with_other, DOWN);
+            send_key_def_input("with_other", remap->to_with_other, DOWN);
         }
         remap = remap->next;
     }
