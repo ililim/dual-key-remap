@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.8
+### Changed
+- Improved debug mode with clearer logs. In addition if the DEBUG env var is set DKR will launch in debug mode.
+
 ## 0.7
 ### Fixed
 - Dual-key-remap will no longer show a blank console window when launched via the Windows Terminal app. This issue mainly affected Win11 users due to Terminal replacing Command Prompt as the default console application.
