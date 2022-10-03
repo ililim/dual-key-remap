@@ -13,7 +13,7 @@ Other solutions can leak inputs, get stuck, or do not handle key timing edge cas
 ## Installation
 
 1) Download and unzip the latest [release](https://github.com/ililim/dual-key-remap/releases).
-2) Put both 'dual-key-remap.exe' and 'config.txt' in a permament directory of your choice. (e.g. `C:\Program Files\dual-key-remap`).
+2) Put both 'dual-key-remap.exe' and 'config.txt' in a permanent directory of your choice. (e.g. `C:\Program Files\dual-key-remap`).
 3) Create a shortcut to 'dual-key-remap.exe' in your startup directory (e.g. `C:\Users\%USERNAME%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\dual-key-remap.lnk`).
 4) Optionally edit config.txt (see below) and run 'dual-key-remap.exe'. 🥳 Your chosen keys are now remapped!
 
