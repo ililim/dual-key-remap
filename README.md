@@ -50,18 +50,14 @@ By using an utility like [Sharp Keys](https://github.com/randyrants/sharpkeys) y
 
 ### Building dual-key-remap.exe
 
-To build dual-key-remap you will need a way to compile c programs. You can follow [Microsoft's documentation](https://msdn.microsoft.com/en-us/library/bb384838.aspx) to get the required tooling setup.
-
-Once that's all setup you should be able to use to the Visual C++ developer command prompt to run the following commands:
-
-Run the tests:
+1. Prerequisite: You will need [Visual Studio's build tools installed](https://msdn.microsoft.com/en-us/library/bb384838.aspx).
+2. Launch the "Command Prompt for VS" (or equivalent) so you can use the `cl` and `nmake` programs.
+3. Use `nmake` to run the various commands from the [Makefile](./Makefile):
 
 ```
-cl .\test.c  && .\test.exe
-```
+# Run the test suite
+nmake tests
 
-Build the application:
-
-```
-cl .\dual-key-remap.c /link user32.lib shell32.lib /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup
+# Build dual-key-remap.exe
+nmake dual-key-remap
 ```
