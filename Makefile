@@ -1,4 +1,4 @@
-.PHONY : tests build kill debug release
+.PHONY: tests build kill debug release
 
 tests:
 	cl tests.c && .\tests.exe
@@ -16,5 +16,6 @@ debug:
 	.\dual-key-remap.exe
 
 release:
-	$(MAKE) tests
+	$(MAKE) kill
 	$(MAKE) build
+	powershell .\release.ps1
