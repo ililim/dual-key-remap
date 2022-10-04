@@ -13,16 +13,16 @@ All notable changes to this project will be documented in this file.
 ## 0.6
 ### Changed
 - Improve how we send inputs, Dual-key-remap should now work in more applications and locales!
-- Removed virtual keycodes as all key inputs are now sent as virtual keycodes. If you relied on this previously to make the app work you can use the regular keycodes again.
-- Dual key remap will no longer try to automatically remap both modifiers keys if you don't specify whether it's the left or the right key. If you don't provide a side then it will rebind the LEFT key by default. For those that need both keys remapped, you can create two remappings in your config.
-- Renamed and cleaned up the available key codes. You may have to update your config.
-- If a keycode that you need is missing open a new issue to report it.
+- Removed support for specifying virtual keys in the config as all key inputs will now be sent with both virtual and scancode values. If you relied on sending virtual keys previously to make dual-key-remap work with some apps you can use the regular key names again.
+- Dual key remap will no longer try to automatically remap both modifiers keys if you don't specify whether it's the left or the right key. If you don't specify a side then it will rebind the LEFT only. For those that need both keys remapped, you can create two remappings in your config.
+- Renamed and cleaned up the available key names. You may have to update your config.
+- If a keycode that you need is missing: open a new issue to report it.
 ### Fixed
 - Remappings bound to left or right modifiers will no longer be triggered by both left and right keys.
 
 ## 0.5
 ### Changed
-- Mouse scrolling will now trigger the `with_other` modifier (`CTRL` by default).
+- Mouse scrolling will now trigger the `with_other` modifier. So holding down the dual key and scrolling will send CTRL+scroll in the default config.
 
 ## 0.4
 ### Added
@@ -38,8 +38,7 @@ All notable changes to this project will be documented in this file.
 
 ## 0.3
 ### Added
-- We now send hardware scan codes by default instead of virtual key codes. These inputs aren't intercepted by DirectX,
-  and as a result will work better in a lot of applications (especially games).
+- We now send hardware scan codes by default instead of virtual key codes. These inputs will work better in most applications (especially games).
 - Now both hardware inputs and virtual inputs are supported in the config, for more information see the config.txt documentation.
 - Added additional capabilities to handle both left and right modifier keys.
 - Added logging support by setting `debug=1` in config.txt.
