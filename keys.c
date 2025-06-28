@@ -9,7 +9,7 @@ struct KeyDef {
     int scan_code;
     int virt_code;
 };
-typedef const struct KeyDef KEY_DEF;
+typedef struct KeyDef KEY_DEF;
 
 #define VK_LEFT_CTRL 0xA2
 #define VK_RIGHT_CTRL 0xA3
@@ -337,7 +337,7 @@ KEY_DEF * ENTER = &key_table[13];
 KEY_DEF * ESC   = &key_table[14];
 KEY_DEF * SPACE = &key_table[15];
 KEY_DEF * TAB   = &key_table[16];
-KEY_DEF * MOUSE_DUMMY = (KEY_DEF *)&(struct KeyDef){"<MOUSE>", 0, MOUSE_DUMMY_VK};
+KEY_DEF * MOUSE = &(struct KeyDef){"<MOUSE>", 0, MOUSE_DUMMY_VK};
 
 KEY_DEF * find_key_def_by_name(char * name)
 {
@@ -349,7 +349,7 @@ KEY_DEF * find_key_def_by_name(char * name)
             }
         }
     }
-    return NULL;
+    return 0;
 }
 
 KEY_DEF * find_key_def_by_scan_code(int code)
@@ -360,7 +360,7 @@ KEY_DEF * find_key_def_by_scan_code(int code)
             return key;
         }
     }
-    return NULL;
+    return 0;
 }
 
 KEY_DEF * find_key_def_by_virt_code(int code)
@@ -371,7 +371,7 @@ KEY_DEF * find_key_def_by_virt_code(int code)
             return key;
         }
     }
-    return NULL;
+    return 0;
 }
 
 // Defaults to the remappable key names per our definitions, but also

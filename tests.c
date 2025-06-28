@@ -15,12 +15,12 @@
 #  define DEV_TTY  "/dev/tty"
 #endif
 
-static int g_assertions = 0, g_failures = 0;
-static char g_sec[128] = "";
-static int  g_sec_fail_at = 0;
-static int  g_sec_total = 0, g_sec_pass = 0;
+int  g_assertions = 0, g_failures = 0;
+char g_sec[128] = "";
+int  g_sec_fail_at = 0;
+int  g_sec_total = 0, g_sec_pass = 0;
 
-static void end_section(void)
+void end_section(void)
 {
     if (*g_sec) {
         int failed = g_failures - g_sec_fail_at;
@@ -48,7 +48,7 @@ static void end_section(void)
         }                                                                      \
     } while (0)
 
-static void summary(void)
+void summary(void)
 {
     end_section();
     puts("────────────────────────────────────────────────────────────");
@@ -59,27 +59,27 @@ static void summary(void)
 }
 
 /* Output capture */
-struct Output { int sc, vc; enum Direction dir; struct Output *next; };
-static struct Output *g_out = NULL;
-static void push_out(int sc,int vc,enum Direction d){
-    struct Output*n=malloc(sizeof*n);*n=(struct Output){sc,vc,d,NULL};
-    struct Output**t=&g_out;while(*t)t=&(*t)->next;*t=n;}
-static void clear_out(void){while(g_out){struct Output*n=g_out->next;free(g_out);g_out=n;}}
+struct Output { int scan, virt;enum Direction dir;struct Output *next; };
+struct Output *g_output = NULL;
+void push_out(int scan,int virt,enum Direction dir){
+    struct Output*n=malloc(sizeof*n);*n=(struct Output){scan,virt,dir,NULL};
+    struct Output**t=&g_output;while(*t)t=&(*t)->next;*t=n;}
+void clear_out(void){while(g_output){struct Output*n=g_output->next;free(g_output);g_output=n;}}
 
-void send_input(int sc,int vc,enum Direction d){
-    if(!handle_input(sc,vc,d,1)) push_out(sc,vc,d);}
-static void user_input(int sc,int vc,enum Direction d){
-    if(!handle_input(sc,vc,d,0)) push_out(sc,vc,d);}
+void send_input(int scan,int virt,enum Direction dir){
+    if(!handle_input(scan,virt,dir,1)) push_out(scan,virt,dir);}
+void user_input(int scan,int virt,enum Direction dir){
+    if(!handle_input(scan,virt,dir,0)) push_out(scan,virt,dir);}
 
 /* DSL */
-#define IN(K,D)             user_input((K)->scan_code,(K)->virt_code,D)
-#define IN_MANUAL(SC,VC,D)  user_input(SC,VC,D)
-static void SEE(KEY_DEF*k,enum Direction d){
-    struct Output*n=g_out;if(!n){EXPECT(0,"output list empty");return;}
-    EXPECT(n->vc==k->virt_code,"wrong virt code");
-    EXPECT(n->dir==d,"wrong direction");
-    g_out=n->next;free(n);}
-static void EMPTY(void){EXPECT(g_out==NULL,"output list not empty");}
+#define IN(KEY,DIR)              user_input((KEY)->scan_code,(KEY)->virt_code,DIR)
+#define IN_MANUAL(SCAN,VIRT,DIR) user_input(SCAN,VIRT,DIR)
+void SEE(KEY_DEF*key,enum Direction dir){
+    struct Output*n=g_output;if(!n){EXPECT(0,"output list empty");return;}
+    EXPECT(n->virt==key->virt_code,"wrong virt code");
+    EXPECT(n->dir==dir,"wrong direction");
+    g_output=n->next;free(n);}
+void EMPTY(void){EXPECT(!g_output,"output list not empty");}
 
 /* Tests */
 int main(void)

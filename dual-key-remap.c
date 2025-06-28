@@ -19,8 +19,8 @@
 #define INJECTED_KEY_ID 0xFFC3CED7
 
 struct Remap * g_remap_list;
-HHOOK g_keyboard_hook;
 HHOOK g_mouse_hook;
+HHOOK g_keyboard_hook;
 
 void send_input(int scan_code, int virt_code, enum Direction direction)
 {
@@ -122,7 +122,7 @@ int load_config_file(wchar_t * path)
 
 void put_config_path(wchar_t * path)
 {
-    HMODULE module = GetModuleHandleW(NULL);
+    HMODULE module = GetModuleHandleW(0);
     GetModuleFileNameW(module, path, MAX_PATH);
     path[wcslen(path) - strlen("dual-key-remap.exe")] = '\0';
     wcscat(path, L"config.txt");
@@ -131,10 +131,10 @@ void put_config_path(wchar_t * path)
 
 int main()
 {
-    // Initialization may print errors to stdout, create a console to show that output.
+    // Initialization may print errors to stdout, create a console to show that output
     create_console();
 
-    HANDLE mutex = CreateMutex(NULL, TRUE, "dual-key-remap.single-instance");
+    HANDLE mutex = CreateMutex(0, TRUE, "dual-key-remap.single-instance");
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
         printf("dual-key-remap.exe is already running!\n");
@@ -152,16 +152,16 @@ int main()
     SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 
-    g_debug = g_debug || getenv("DEBUG") != NULL;
-    g_mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, mouse_callback, NULL, 0);
-    g_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_callback, NULL, 0);
+    g_debug = g_debug || getenv("DEBUG");
+    g_mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, mouse_callback, 0, 0);
+    g_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_callback, 0, 0);
 
-    if (g_mouse_hook == NULL || g_keyboard_hook == NULL) {
+    if (!g_mouse_hook || !g_keyboard_hook) {
         printf("Failed to set keyboard or mouse hooks, aborting.\n");
         goto end;
     }
 
-    // We're all good if we got this far. Hide the console window unless we're debugging.
+    // We're all good if we got this far, hide the console window unless we're debugging
     if (g_debug) {
         printf("-- DEBUG MODE --\n");
     } else {
@@ -169,7 +169,7 @@ int main()
     }
 
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0) > 0)
+    while (GetMessage(&msg, 0, 0, 0) > 0)
     {
         TranslateMessage(&msg);
         DispatchMessage(&msg);

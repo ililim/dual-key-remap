@@ -31,7 +31,7 @@ struct Remap
 
 int g_debug = 0;
 struct Remap * g_remap_list;
-struct Remap * g_remap_parsee = NULL;
+struct Remap * g_remap_parsee = 0;
 
 // Debug Logging
 // --------------------------------------
@@ -97,7 +97,7 @@ struct Remap * new_remap(KEY_DEF * from, KEY_DEF * to_when_alone, KEY_DEF * to_w
     remap->to_when_alone = to_when_alone;
     remap->to_with_other = to_with_other;
     remap->state = IDLE;
-    remap->next = NULL;
+    remap->next = 0;
     return remap;
 }
 
@@ -121,7 +121,7 @@ struct Remap * find_remap_for_virt_code(int virt_code)
         }
         remap = remap->next;
     }
-    return NULL;
+    return 0;
 }
 
 void send_key_def_input(char * input_name, KEY_DEF * key_def, enum Direction dir)
@@ -173,7 +173,7 @@ int handle_input(int scan_code, int virt_code, int direction, int is_injected)
 {
     log_handle_input_start(scan_code, virt_code, direction, is_injected);
     // Note: injected keys are never remapped to avoid complex nested scenarios
-    struct Remap * remap_for_input = is_injected ? NULL : find_remap_for_virt_code(virt_code);
+    struct Remap * remap_for_input = is_injected ? 0 : find_remap_for_virt_code(virt_code);
     int block_input = 0;
 
     if (!remap_for_input) {
@@ -271,7 +271,7 @@ int load_config_line(char *line, int linenum)
 
         // allocate the working remap if this is the first line of a block
         if (!g_remap_parsee)
-            g_remap_parsee = new_remap(NULL, NULL, NULL);
+            g_remap_parsee = new_remap(0, 0, 0);
 
         // fill the appropriate field & catch duplicate remap_key
         if (field == 1) {
@@ -293,7 +293,7 @@ int load_config_line(char *line, int linenum)
         // commit when block is complete
         if (parsee_is_valid()) {
             register_remap(g_remap_parsee);
-            g_remap_parsee = NULL;
+            g_remap_parsee = 0;
         }
         return 0;
     }
@@ -308,11 +308,11 @@ int load_config_line(char *line, int linenum)
 void reset_config()
 {
     free(g_remap_parsee);
-    g_remap_parsee = NULL;
+    g_remap_parsee = 0;
     while (g_remap_list) {
         struct Remap * remap = g_remap_list;
         g_remap_list = remap->next;
         free(remap);
     }
-    g_remap_list = NULL;
+    g_remap_list = 0;
 }
