@@ -96,6 +96,14 @@ typedef const struct KeyDef KEY_DEF;
 #define VK_SCROLLLOCK 0x91
 #define VK_PAUSE 0x13
 
+#define VK_MEDIA_PLAY_PAUSE 0xB3
+#define VK_MEDIA_NEXT_TRACK  0xB0
+#define VK_MEDIA_PREV_TRACK  0xB1
+#define VK_MEDIA_STOP        0xB2
+#define VK_VOLUME_MUTE       0xAD
+#define VK_VOLUME_DOWN       0xAE
+#define VK_VOLUME_UP         0xAF
+
 #define VK_PLUS 0xBB
 #define VK_COMMA 0xBC
 #define VK_MINUS 0xBD
@@ -298,6 +306,14 @@ KEY_DEF key_table[] = {
     {"SCROLLLOCK", 0, VK_SCROLLLOCK},
     {"PAUSE", 0, VK_PAUSE},
 
+    {"MEDIA_PLAY_PAUSE", 0, VK_MEDIA_PLAY_PAUSE},
+    {"MEDIA_NEXT_TRACK", 0, VK_MEDIA_NEXT_TRACK},
+    {"MEDIA_PREV_TRACK", 0, VK_MEDIA_PREV_TRACK},
+    {"MEDIA_STOP", 0, VK_MEDIA_STOP},
+    {"VOLUME_MUTE", 0, VK_VOLUME_MUTE},
+    {"VOLUME_DOWN", 0, VK_VOLUME_DOWN},
+    {"VOLUME_UP", 0, VK_VOLUME_UP},
+
     {"PLUS", SK_PLUS, VK_PLUS},
     {"COMMA", SK_COMMA, VK_COMMA},
     {"MINUS", SK_MINUS, VK_MINUS},
@@ -321,7 +337,7 @@ KEY_DEF * ENTER = &key_table[13];
 KEY_DEF * ESC   = &key_table[14];
 KEY_DEF * SPACE = &key_table[15];
 KEY_DEF * TAB   = &key_table[16];
-KEY_DEF * MOUSE = &(const struct KeyDef){"<MOUSE>", 0, MOUSE_DUMMY_VK};
+KEY_DEF * MOUSE_DUMMY = (KEY_DEF *)&(struct KeyDef){"<MOUSE>", 0, MOUSE_DUMMY_VK};
 
 KEY_DEF * find_key_def_by_name(char * name)
 {
