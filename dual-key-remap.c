@@ -156,6 +156,11 @@ int main()
     g_mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, mouse_callback, NULL, 0);
     g_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_callback, NULL, 0);
 
+    if (g_mouse_hook == NULL || g_keyboard_hook == NULL) {
+        printf("Failed to set keyboard or mouse hooks, aborting.\n");
+        goto end;
+    }
+
     // We're all good if we got this far. Hide the console window unless we're debugging.
     if (g_debug) {
         printf("-- DEBUG MODE --\n");
