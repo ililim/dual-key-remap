@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <string.h>
 
 #ifndef KEYS_C
 #define KEYS_C

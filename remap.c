@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <ctype.h>
+#include <string.h>
 #include "input.h"
 #include "keys.c"
 
@@ -175,7 +177,7 @@ int handle_input(int scan_code, int virt_code, int direction, int is_injected)
     int block_input = 0;
 
     if (!remap_for_input) {
-        block_input = event_other_input(scan_code, virt_code, direction);
+        block_input = event_other_input();
     } else {
         block_input = direction == DOWN
             ? event_remapped_key_down(remap_for_input)
@@ -202,67 +204,105 @@ int parsee_is_valid()
 }
 
 /* @return error */
-int load_config_line(char * line, int linenum)
+int load_config_line(char *line, int linenum)
 {
+    char buf[256];
+    if (strlen(line) >= sizeof(buf) - 1) {
+        fprintf(stderr,
+                "Config error (line %d): line too long (max %zu chars)\n",
+                linenum, sizeof(buf) - 2);
+        return 1;
+    }
+    strcpy(buf, line);
+    line = buf;
+
+    // ignore blanks / comments
     trim_newline(line);
-
-    // Ignore comments and empty lines
-    if (line[0] == '#' || line[0] == '\0') {
+    if (line[0] == '\0' || line[0] == '#')
         return 0;
-    }
 
-    // Handle config declaration
-    if (strstr(line, "debug=1")) {
-        g_debug = 1;
-        return 0;
-    }
-    if (strstr(line, "debug=0")) {
-        g_debug = 0;
-        return 0;
-    }
-
-    // Handle key remappings
-    char * after_eq = (char *)strchr(line, '=');
+    // split key = value
+    char *after_eq = strchr(line, '=');
     if (!after_eq) {
-        printf("Config error (line %d): Couldn't understand '%s'.\n", linenum, line);
+        fprintf(stderr,
+                "Config error (line %d): expected key=value\n", linenum);
         return 1;
     }
-    char * key_name = after_eq + 1;
-    KEY_DEF * key_def = find_key_def_by_name(key_name);
-    if (!key_def) {
-        printf("Config error (line %d): Invalid key name '%s'.\n", linenum, key_name);
-        printf("Key names were changed in the most recent version. Please review review the wiki for the new names!\n");
+    *after_eq++ = '\0'; // terminate key, advance to value
+
+    // right-trim key, left-trim value
+    while (*line && isspace((unsigned char)line[strlen(line) - 1]))
+        line[strlen(line) - 1] = '\0';
+    while (isspace((unsigned char)*after_eq))
+        ++after_eq;
+
+    // toggle debug mode
+    if (strcmp(line, "debug") == 0) {
+        if (strcmp(after_eq, "1") == 0 || strcasecmp(after_eq, "true")  == 0) {
+            g_debug = 1;
+            return 0;
+        }
+        if (strcmp(after_eq, "0") == 0 || strcasecmp(after_eq, "false") == 0) {
+            g_debug = 0;
+            return 0;
+        }
+        fprintf(stderr,
+                "Config error (line %d): debug must be 0/1/true/false\n",
+                linenum);
         return 1;
     }
 
-    if (g_remap_parsee == NULL) {
-        g_remap_parsee = new_remap(NULL, NULL, NULL);
-    }
+    // remap directives
+    int field = 0;                  // 1 = remap_key, 2 = when_alone, 3 = with_other
+    if      (strcmp(line, "remap_key")  == 0) field = 1;
+    else if (strcmp(line, "when_alone") == 0) field = 2;
+    else if (strcmp(line, "with_other") == 0) field = 3;
 
-    if (strstr(line, "remap_key=")) {
-        if (g_remap_parsee->from && !parsee_is_valid()) {
-            printf("Config error (line %d): Incomplete remapping.\n"
-                   "Each remapping must have a 'remap_key', 'when_alone', and 'with_other'.\n",
-                   linenum);
+    if (field) {
+        KEY_DEF *key_def = find_key_def_by_name(after_eq);
+        if (!key_def) {
+            fprintf(stderr,
+                    "Config error (line %d): invalid key name '%s'\n",
+                    linenum, after_eq);
+            fprintf(stderr,
+                    "Key names may have changed; see the wiki for the new list.\n");
             return 1;
         }
-        g_remap_parsee->from = key_def;
-    } else if (strstr(line, "when_alone=")) {
-        g_remap_parsee->to_when_alone = key_def;
-    } else if (strstr(line, "with_other=")) {
-        g_remap_parsee->to_with_other = key_def;
-    } else {
-        after_eq[0] = 0;
-        printf("Config error (line %d): Invalid setting '%s'.\n", linenum, line);
-        return 1;
+
+        // allocate the working remap if this is the first line of a block
+        if (!g_remap_parsee)
+            g_remap_parsee = new_remap(NULL, NULL, NULL);
+
+        // fill the appropriate field & catch duplicate remap_key
+        if (field == 1) {
+            if (g_remap_parsee->from && !parsee_is_valid()) {
+                fprintf(stderr,
+                        "Config error (line %d): Incomplete remapping.\n"
+                        "Each remap needs remap_key, when_alone and with_other\n"
+                        "before another remap_key.\n",
+                        linenum);
+                return 1;
+            }
+            g_remap_parsee->from = key_def;
+        } else if (field == 2) { // when_alone=
+            g_remap_parsee->to_when_alone = key_def;
+        } else { // with_other=
+            g_remap_parsee->to_with_other = key_def;
+        }
+
+        // commit when block is complete
+        if (parsee_is_valid()) {
+            register_remap(g_remap_parsee);
+            g_remap_parsee = NULL;
+        }
+        return 0;
     }
 
-    if (parsee_is_valid()) {
-        register_remap(g_remap_parsee);
-        g_remap_parsee = NULL;
-    }
-
-    return 0;
+    // anything else is unknown
+    fprintf(stderr,
+            "Config error (line %d): invalid setting '%s'\n",
+            linenum, line);
+    return 1;
 }
 
 void reset_config()
