@@ -7,6 +7,14 @@
 #include "keys.c"
 #include "remap.c"
 
+#if defined(_WIN32)
+#  define DEV_NULL "NUL"
+#  define DEV_TTY  "CONOUT$"
+#else
+#  define DEV_NULL "/dev/null"
+#  define DEV_TTY  "/dev/tty"
+#endif
+
 static int g_assertions = 0, g_failures = 0;
 static char g_sec[128] = "";
 static int  g_sec_fail_at = 0;
@@ -81,12 +89,14 @@ int main(void)
         SEE(ESC,DOWN); SEE(SHIFT,DOWN); SEE(ESC,UP); EMPTY();
 
     SECTION("Helpful error messages");
+    freopen(DEV_NULL, "w", stderr); // Silence expected error messages
     EXPECT(load_config_line("invalid_setting=ESCAPE",1)==1,"bad setting");
     EXPECT(load_config_line("remap_key=INVALID_KEY",2)==1,"bad key");
     EXPECT(load_config_line("remap_key::ESCAPE",3)==1,"bad sep");
     EXPECT(load_config_line("remap_key=ESCAPE",999)==0,"first ok");
     EXPECT(load_config_line("remap_key=ESCAPE",4)==1,"incomplete block");
     reset_config();
+    freopen(DEV_TTY, "w", stderr); // Restore stderr
 
     SECTION("Registers remappings from config");
     EXPECT(g_debug==0,"debug default off");
