@@ -2,12 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
+#ifdef _WIN32
+#  include <io.h>
+#  define dup  _dup
+#  define dup2 _dup2
+#  define fileno _fileno
+#endif
 
 #include "input.h"
 #include "keys.c"
 #include "remap.c"
 
-#if defined(_WIN32)
+#ifdef _WIN32
 #  define DEV_NULL "NUL"
 #  define DEV_TTY  "CONOUT$"
 #else
@@ -55,7 +62,7 @@ void summary(void)
     printf("Sections: %d  Passed: %d  Failed: %d   Assertions: %d/%d\n",
            g_sec_total, g_sec_pass, g_sec_total - g_sec_pass,
            g_assertions - g_failures, g_assertions);
-    printf("Exit status: %d\n", g_failures ? 1 : 0);
+    printf("%s\n", g_failures ? "Some tests failed ✘" : "All tests passed! ✔");
 }
 
 /* Output capture */
@@ -80,6 +87,43 @@ void SEE(KEY_DEF*key,enum Direction dir){
     EXPECT(n->dir==dir,"wrong direction");
     g_output=n->next;free(n);}
 void EMPTY(void){EXPECT(!g_output,"output list not empty");}
+
+/* ---- Stdout capture helpers (for debug-log tests) ---- */
+static FILE *g_cap_fp = NULL;  /* temp file where we redirect stdout */
+static int   g_saved_stdout = -1; /* original stdout fd */
+void capture_start(void)
+{
+    fflush(stdout);
+    g_saved_stdout = dup(fileno(stdout));
+    g_cap_fp = tmpfile();
+    if (g_cap_fp) {
+        dup2(fileno(g_cap_fp), fileno(stdout));
+    }
+}
+/* Returns malloc-allocated buffer with captured output (caller frees) */
+char *capture_stop(void)
+{
+    fflush(stdout);
+    long size = 0;
+    if (g_cap_fp) {
+        fseek(g_cap_fp, 0, SEEK_END);
+        size = ftell(g_cap_fp);
+        rewind(g_cap_fp);
+    }
+    char *buf = malloc((size_t)size + 1);
+    if (size > 0 && g_cap_fp) {
+        fread(buf, 1, (size_t)size, g_cap_fp);
+    }
+    buf[size] = '\0';
+    if (g_cap_fp) fclose(g_cap_fp);
+    if (g_saved_stdout != -1) {
+        dup2(g_saved_stdout, fileno(stdout));
+        close(g_saved_stdout);
+    }
+    g_cap_fp = NULL;
+    g_saved_stdout = -1;
+    return buf;
+}
 
 /* Tests */
 int main(void)
@@ -175,7 +219,7 @@ int main(void)
 
     SECTION("Mouse input triggers with_other");
     IN(CAPS,DOWN); EMPTY();
-    IN_MANUAL(0, MOUSE_DUMMY_VK, DOWN);  // simulate mouse wheel/button event
+    IN_MANUAL(0, MOUSE_DUMMY_VK, DOWN);
     SEE(CTRL,DOWN); SEE(MOUSE,DOWN); EMPTY();
     IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
 
@@ -209,6 +253,40 @@ int main(void)
     IN(ENTER,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN); EMPTY();
     IN(ENTER,DOWN); SEE(ENTER,DOWN); EMPTY(); // no second CTRL down
     IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("Debug logging works as expected");
+    g_debug = 0;
+    capture_start();
+    IN(CAPS,DOWN); IN(CAPS,UP);
+    char *log0 = capture_stop();
+    EXPECT(log0[0] == '\0', "debug off no logs");
+    free(log0);
+
+    g_debug = 1;
+    capture_start();
+    IN(CAPS,DOWN);
+    IN(ENTER,DOWN);
+    IN(ENTER,UP);
+    IN(CAPS,UP);
+    IN(TAB,DOWN);
+    IN(TAB,UP);
+    // inputs to trigger friendly_virt_code_name fallbacks
+    IN_MANUAL(0, MOUSE_DUMMY_VK, DOWN);
+    IN_MANUAL(0, MOUSE_DUMMY_VK, UP);
+    IN_MANUAL(0, 0, DOWN);
+    IN_MANUAL(0, 0, UP);
+    char *log1 = capture_stop();
+
+    EXPECT(strstr(log1, "[input] CAPSLOCK DOWN") != NULL, "caps down logged");
+    EXPECT(strstr(log1, "#blocked-input#")       != NULL, "blocked input logged");
+    EXPECT(strstr(log1, "(sending:with_other)")  != NULL, "with_other send logged");
+    EXPECT(strstr(log1, "(sending:when_alone)")  != NULL, "when_alone send logged");
+    EXPECT(strstr(log1, "[output]")              != NULL, "output events logged");
+    EXPECT(strstr(log1, "<MOUSE INPUT>")         != NULL, "mouse input friendly name");
+    EXPECT(strstr(log1, "<ZERO_CODE>")           != NULL, "zero code friendly name");
+    free(log1);
+
+    g_debug = 0;
 
     summary();
     clear_out();
