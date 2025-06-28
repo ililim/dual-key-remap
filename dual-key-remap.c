@@ -148,6 +148,10 @@ int main()
         goto end;
     }
 
+    // Elevate process and main thread priority to reduce input lag under high CPU load
+    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+
     g_debug = g_debug || getenv("DEBUG") != NULL;
     g_mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, mouse_callback, NULL, 0);
     g_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_callback, NULL, 0);
