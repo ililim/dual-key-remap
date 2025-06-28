@@ -157,6 +157,49 @@ int main(void)
     IN_MANUAL(SK_LEFT_SHIFT,VK_RIGHT_SHIFT,DOWN);
     IN_MANUAL(SK_LEFT_SHIFT,VK_RIGHT_SHIFT,UP); SEE(RSHIFT,DOWN); SEE(RSHIFT,UP); EMPTY();
 
+    SECTION("Injected remap key is not remapped");
+    EMPTY();
+    send_input(CAPS->scan_code, CAPS->virt_code, DOWN);
+    send_input(CAPS->scan_code, CAPS->virt_code, UP);
+    SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+
+    SECTION("Mouse input triggers with_other");
+    IN(CAPS,DOWN); EMPTY();
+    IN_MANUAL(0, MOUSE_DUMMY_VK, DOWN);  // simulate mouse wheel/button event
+    SEE(CTRL,DOWN); SEE(MOUSE,DOWN); EMPTY();
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("with_other not duplicated across multiple other inputs");
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(SPACE,DOWN); SEE(SPACE,DOWN); EMPTY(); // no extra CTRL down expected
+    IN(SPACE,UP); SEE(SPACE,UP); EMPTY();
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("Other key released before remap key");
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(ENTER,UP); SEE(ENTER,UP); EMPTY(); // CTRL still down
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("Other key held first, then remap key pressed");
+    IN(ENTER,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,UP); SEE(CTRL,DOWN); SEE(ENTER,UP); EMPTY();
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("Two remaps cross-release");
+    IN(CAPS,DOWN); IN(TAB,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(ALT,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+    IN(TAB,UP); SEE(ALT,UP); EMPTY();
+
+    SECTION("Duplicate other key down while helper held");
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(ENTER,DOWN); EMPTY(); // no second CTRL down
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+
     summary();
     clear_out();
     return g_failures ? EXIT_FAILURE : EXIT_SUCCESS;

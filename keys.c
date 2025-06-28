@@ -44,6 +44,7 @@ typedef const struct KeyDef KEY_DEF;
 #define VK_F10 0x79
 #define VK_F11 0x7A
 #define VK_F12 0x7B
+#define VK_F23 0x86
 
 #define VK_KEY_0 0x30
 #define VK_KEY_1 0x31
@@ -139,6 +140,7 @@ typedef const struct KeyDef KEY_DEF;
 #define SK_F10 0x44
 #define SK_F11 0x57
 #define SK_F12 0x58
+#define SK_F23 0x6E
 
 #define SK_KEY_0 0x0B
 #define SK_KEY_1 0x02
@@ -244,6 +246,7 @@ KEY_DEF key_table[] = {
     {"F10", SK_F10, VK_F10},
     {"F11", SK_F11, VK_F11},
     {"F12", SK_F12, VK_F12},
+    {"F23", SK_F23, VK_F23},
 
     {"KEY_0", SK_KEY_0, VK_KEY_0},
     {"KEY_1", SK_KEY_1, VK_KEY_1},
@@ -318,6 +321,7 @@ KEY_DEF * ENTER = &key_table[13];
 KEY_DEF * ESC   = &key_table[14];
 KEY_DEF * SPACE = &key_table[15];
 KEY_DEF * TAB   = &key_table[16];
+KEY_DEF * MOUSE = &(const struct KeyDef){"<MOUSE>", 0, MOUSE_DUMMY_VK};
 
 KEY_DEF * find_key_def_by_name(char * name)
 {
