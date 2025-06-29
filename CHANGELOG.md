@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## 0.8
 ### Changed
+- Added more keys: Numpad, media keys, various brackets and some other rare keys
+- Added support for a NOOP key, useful for when you want to rebind a key to do nothing
 - Improved debug mode with clearer logs. In addition if the DEBUG env var is set DKR will launch in debug mode.
 ### Fixed
 - Support sending extended key metadata for key events that support it (notably RIGHT_CTRL). This should resolve an issue where AHK was not able to distinguish between LEFT_CTRL and RIGHT_CTRL sent by dual-key-remap.
