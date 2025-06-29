@@ -259,6 +259,19 @@ typedef struct KeyDef KEY_DEF;
 #define SK_PAGE_UP 0x49
 #define SK_PAGE_DOWN 0x51
 
+#define SK_PRINT_SCREEN 0x154
+#define SK_NUMLOCK 0x145
+#define SK_SCROLLLOCK 0x46
+#define SK_PAUSE 0x45
+
+#define SK_MEDIA_PLAY_PAUSE 0xE022
+#define SK_MEDIA_NEXT_TRACK 0xE019
+#define SK_MEDIA_PREV_TRACK 0xE010
+#define SK_MEDIA_STOP 0xE024
+#define SK_VOLUME_MUTE 0xE020
+#define SK_VOLUME_DOWN 0xE02E
+#define SK_VOLUME_UP 0xE030
+
 #define SK_PLUS 0x0d
 #define SK_COMMA 0x33
 #define SK_MINUS 0x0c
@@ -399,18 +412,18 @@ KEY_DEF key_table[] = {
     {"PAGE_UP", SK_PAGE_UP, VK_PAGE_UP},
     {"PAGE_DOWN", SK_PAGE_DOWN, VK_PAGE_DOWN},
 
-    {"PRINT_SCREEN", 0, VK_PRINT_SCREEN},
-    {"NUMLOCK", 0, VK_NUMLOCK},
-    {"SCROLLLOCK", 0, VK_SCROLLLOCK},
-    {"PAUSE", 0, VK_PAUSE},
+    {"PRINT_SCREEN", SK_PRINT_SCREEN, VK_PRINT_SCREEN},
+    {"NUMLOCK", SK_NUMLOCK, VK_NUMLOCK},
+    {"SCROLLLOCK", SK_SCROLLLOCK, VK_SCROLLLOCK},
+    {"PAUSE", SK_PAUSE, VK_PAUSE},
 
-    {"MEDIA_PLAY_PAUSE", 0, VK_MEDIA_PLAY_PAUSE},
-    {"MEDIA_NEXT_TRACK", 0, VK_MEDIA_NEXT_TRACK},
-    {"MEDIA_PREV_TRACK", 0, VK_MEDIA_PREV_TRACK},
-    {"MEDIA_STOP", 0, VK_MEDIA_STOP},
-    {"VOLUME_MUTE", 0, VK_VOLUME_MUTE},
-    {"VOLUME_DOWN", 0, VK_VOLUME_DOWN},
-    {"VOLUME_UP", 0, VK_VOLUME_UP},
+    {"MEDIA_PLAY_PAUSE", SK_MEDIA_PLAY_PAUSE, VK_MEDIA_PLAY_PAUSE},
+    {"MEDIA_NEXT_TRACK", SK_MEDIA_NEXT_TRACK, VK_MEDIA_NEXT_TRACK},
+    {"MEDIA_PREV_TRACK", SK_MEDIA_PREV_TRACK, VK_MEDIA_PREV_TRACK},
+    {"MEDIA_STOP", SK_MEDIA_STOP, VK_MEDIA_STOP},
+    {"VOLUME_MUTE", SK_VOLUME_MUTE, VK_VOLUME_MUTE},
+    {"VOLUME_DOWN", SK_VOLUME_DOWN, VK_VOLUME_DOWN},
+    {"VOLUME_UP", SK_VOLUME_UP, VK_VOLUME_UP},
 
     {"PLUS", SK_PLUS, VK_PLUS},
     {"COMMA", SK_COMMA, VK_COMMA},
@@ -488,8 +501,6 @@ char * friendly_virt_code_name(int code)
     {
     case MOUSE_DUMMY_VK:
         return "<MOUSE INPUT>";
-    case 0:
-        return "<ZERO_CODE>";
     case 0x01:
         return "<MOUSE_LEFT>";
     case 0x02:
@@ -538,64 +549,10 @@ char * friendly_virt_code_name(int code)
         return "<EXECUTE>";
     case 0x2F:
         return "<HELP>";
-    case 0x5D:
-        return "<APPS>";
     case 0x5F:
         return "<SLEEP>";
-    case 0x60:
-        return "<NUMPAD_0>";
-    case 0x61:
-        return "<NUMPAD_1>";
-    case 0x62:
-        return "<NUMPAD_2>";
-    case 0x63:
-        return "<NUMPAD_3>";
-    case 0x64:
-        return "<NUMPAD_4>";
-    case 0x65:
-        return "<NUMPAD_5>";
-    case 0x66:
-        return "<NUMPAD_6>";
-    case 0x67:
-        return "<NUMPAD_7>";
-    case 0x68:
-        return "<NUMPAD_8>";
-    case 0x69:
-        return "<NUMPAD_9>";
-    case 0x6A:
-        return "<MULTIPLY>";
-    case 0x6B:
-        return "<ADD>";
     case 0x6C:
         return "<SEPARATOR>";
-    case 0x6D:
-        return "<SUBTRACT>";
-    case 0x6E:
-        return "<DECIMAL>";
-    case 0x6F:
-        return "<DIVIDE>";
-    case 0x7C:
-        return "<F13>";
-    case 0x7D:
-        return "<F14>";
-    case 0x7E:
-        return "<F15>";
-    case 0x7F:
-        return "<F16>";
-    case 0x80:
-        return "<F17>";
-    case 0x81:
-        return "<F18>";
-    case 0x82:
-        return "<F19>";
-    case 0x83:
-        return "<F20>";
-    case 0x84:
-        return "<F21>";
-    case 0x85:
-        return "<F22>";
-    case 0x86:
-        return "<F23>";
     case 0x87:
         return "<F24>";
     case 0xA6:
@@ -612,20 +569,6 @@ char * friendly_virt_code_name(int code)
         return "<BROWSER_FAVORITES>";
     case 0xAC:
         return "<BROWSER_HOME>";
-    case 0xAD:
-        return "<VOLUME_MUTE>";
-    case 0xAE:
-        return "<VOLUME_DOWN>";
-    case 0xAF:
-        return "<VOLUME_UP>";
-    case 0xB0:
-        return "<MEDIA_NEXT_TRACK>";
-    case 0xB1:
-        return "<MEDIA_PREV_TRACK>";
-    case 0xB2:
-        return "<MEDIA_STOP>";
-    case 0xB3:
-        return "<MEDIA_PLAY_PAUSE>";
     case 0xB4:
         return "<LAUNCH_MAIL>";
     case 0xB5:
@@ -634,20 +577,6 @@ char * friendly_virt_code_name(int code)
         return "<LAUNCH_APP1>";
     case 0xB7:
         return "<LAUNCH_APP2>";
-    case 0xBA:
-        return "<OEM_1>";
-    case 0xBF:
-        return "<OEM_2>";
-    case 0xC0:
-        return "<OEM_3>";
-    case 0xDB:
-        return "<OEM_4>";
-    case 0xDC:
-        return "<OEM_5>";
-    case 0xDD:
-        return "<OEM_6>";
-    case 0xDE:
-        return "<OEM_7>";
     case 0xDF:
         return "<OEM_8>";
     case 0xE2:
@@ -675,7 +604,7 @@ char * friendly_virt_code_name(int code)
     case 0xFD:
         return "<PA1>";
     case 0xFE:
-        return "<OEM_CLEA>";
+        return "<OEM_CLEAR>";
     default:
         return "<UNKNOWN>";
     }
