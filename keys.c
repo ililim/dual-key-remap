@@ -237,6 +237,8 @@ KEY_DEF key_table[] = {
     {"SPACE", SK_SPACE, VK_SPACE},
     {"TAB", SK_TAB, VK_TAB},
 
+    {"NOOP", 0, 0},
+
     {"UP", SK_UP, VK_UP},
     {"LEFT", SK_LEFT, VK_LEFT},
     {"RIGHT", SK_RIGHT, VK_RIGHT},
@@ -328,6 +330,8 @@ KEY_DEF key_table[] = {
 
 // Shortcuts to common keys (useful for debugging/testing)
 KEY_DEF * CTRL  = &key_table[0];
+KEY_DEF * LCTRL = &key_table[1];
+KEY_DEF * RCTRL = &key_table[2];
 KEY_DEF * SHIFT = &key_table[3];
 KEY_DEF * LSHIFT = &key_table[4];
 KEY_DEF * RSHIFT = &key_table[5];
@@ -337,6 +341,7 @@ KEY_DEF * ENTER = &key_table[13];
 KEY_DEF * ESC   = &key_table[14];
 KEY_DEF * SPACE = &key_table[15];
 KEY_DEF * TAB   = &key_table[16];
+KEY_DEF * NOOP  = &key_table[17];
 KEY_DEF * MOUSE = &(struct KeyDef){"<MOUSE>", 0, MOUSE_DUMMY_VK};
 
 KEY_DEF * find_key_def_by_name(char * name)

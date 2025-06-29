@@ -283,7 +283,7 @@ int main(void)
     EXPECT(strstr(log1, "(sending:when_alone)")  != NULL, "when_alone send logged");
     EXPECT(strstr(log1, "[output]")              != NULL, "output events logged");
     EXPECT(strstr(log1, "<MOUSE INPUT>")         != NULL, "mouse input friendly name");
-    EXPECT(strstr(log1, "<ZERO_CODE>")           != NULL, "zero code friendly name");
+    EXPECT(strstr(log1, "NOOP")           != NULL, "noop code friendly name");
     free(log1);
 
     g_debug = 0;
