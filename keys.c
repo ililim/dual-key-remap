@@ -60,6 +60,7 @@ typedef struct KeyDef KEY_DEF;
 #define VK_F21 0x84
 #define VK_F22 0x85
 #define VK_F23 0x86
+#define VK_F24 0x87
 
 #define VK_KEY_0 0x30
 #define VK_KEY_1 0x31
@@ -196,6 +197,7 @@ typedef struct KeyDef KEY_DEF;
 #define SK_F21 0x6C
 #define SK_F22 0x6D
 #define SK_F23 0x6E
+#define SK_F24 0x6F
 
 #define SK_KEY_0 0x0B
 #define SK_KEY_1 0x02
@@ -349,6 +351,7 @@ KEY_DEF key_table[] = {
     {"F21", SK_F21, VK_F21},
     {"F22", SK_F22, VK_F22},
     {"F23", SK_F23, VK_F23},
+    {"F24", SK_F24, VK_F24},
 
     {"KEY_0", SK_KEY_0, VK_KEY_0},
     {"KEY_1", SK_KEY_1, VK_KEY_1},
