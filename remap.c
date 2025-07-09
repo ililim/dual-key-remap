@@ -6,6 +6,10 @@
 #include "input.h"
 #include "keys.c"
 
+#ifdef _WIN32
+#   define strcasecmp _stricmp
+#endif
+
 // Types
 // --------------------------------------
 
