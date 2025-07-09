@@ -32,6 +32,11 @@ typedef struct KeyDef KEY_DEF;
 #define VK_RIGHT 0x27
 #define VK_DOWN 0x28
 
+#define VK_LBRACKET 0xDB
+#define VK_RBRACKET 0xDD
+#define VK_BACKSLASH 0xDC
+#define VK_APOSTROPHE 0xDE
+
 #define VK_F1 0x70
 #define VK_F2 0x71
 #define VK_F3 0x72
@@ -44,7 +49,18 @@ typedef struct KeyDef KEY_DEF;
 #define VK_F10 0x79
 #define VK_F11 0x7A
 #define VK_F12 0x7B
+#define VK_F13 0x7C
+#define VK_F14 0x7D
+#define VK_F15 0x7E
+#define VK_F16 0x7F
+#define VK_F17 0x80
+#define VK_F18 0x81
+#define VK_F19 0x82
+#define VK_F20 0x83
+#define VK_F21 0x84
+#define VK_F22 0x85
 #define VK_F23 0x86
+#define VK_F24 0x87
 
 #define VK_KEY_0 0x30
 #define VK_KEY_1 0x31
@@ -84,6 +100,23 @@ typedef struct KeyDef KEY_DEF;
 #define VK_KEY_Y 0x59
 #define VK_KEY_Z 0x5A
 
+#define VK_NUM0 0x60
+#define VK_NUM1 0x61
+#define VK_NUM2 0x62
+#define VK_NUM3 0x63
+#define VK_NUM4 0x64
+#define VK_NUM5 0x65
+#define VK_NUM6 0x66
+#define VK_NUM7 0x67
+#define VK_NUM8 0x68
+#define VK_NUM9 0x69
+#define VK_NUM_MULTIPLY 0x6A
+#define VK_NUM_ADD 0x6B
+#define VK_NUM_SUBTRACT 0x6D
+#define VK_NUM_DECIMAL 0x6E
+#define VK_NUM_DIVIDE 0x6F
+
+#define VK_APPS 0x5D
 #define VK_INSERT 0x2D
 #define VK_DELETE 0x2E
 #define VK_HOME 0x24
@@ -136,6 +169,11 @@ typedef struct KeyDef KEY_DEF;
 #define SK_RIGHT 0X4D
 #define SK_DOWN 0X50
 
+#define SK_LBRACKET 0x1A
+#define SK_RBRACKET 0x1B
+#define SK_BACKSLASH 0x2B
+#define SK_APOSTROPHE 0x28
+
 #define SK_F1 0x3B
 #define SK_F2 0x3C
 #define SK_F3 0x3D
@@ -148,7 +186,18 @@ typedef struct KeyDef KEY_DEF;
 #define SK_F10 0x44
 #define SK_F11 0x57
 #define SK_F12 0x58
+#define SK_F13 0x64
+#define SK_F14 0x65
+#define SK_F15 0x66
+#define SK_F16 0x67
+#define SK_F17 0x68
+#define SK_F18 0x69
+#define SK_F19 0x6A
+#define SK_F20 0x6B
+#define SK_F21 0x6C
+#define SK_F22 0x6D
 #define SK_F23 0x6E
+#define SK_F24 0x6F
 
 #define SK_KEY_0 0x0B
 #define SK_KEY_1 0x02
@@ -188,12 +237,42 @@ typedef struct KeyDef KEY_DEF;
 #define SK_KEY_Y 0x15
 #define SK_KEY_Z 0x2C
 
+#define SK_NUM0 0x52
+#define SK_NUM1 0x4F
+#define SK_NUM2 0x50
+#define SK_NUM3 0x51
+#define SK_NUM4 0x4B
+#define SK_NUM5 0x4C
+#define SK_NUM6 0x4D
+#define SK_NUM7 0x47
+#define SK_NUM8 0x48
+#define SK_NUM9 0x49
+#define SK_NUM_MULTIPLY 0x37
+#define SK_NUM_ADD 0x4E
+#define SK_NUM_SUBTRACT 0x4A
+#define SK_NUM_DECIMAL 0x53
+#define SK_NUM_DIVIDE 0xE035
+
+#define SK_APPS 0xE05D
 #define SK_INSERT 0x52
 #define SK_DELETE 0x53
 #define SK_HOME 0x47
 #define SK_END 0x4f
 #define SK_PAGE_UP 0x49
 #define SK_PAGE_DOWN 0x51
+
+#define SK_PRINT_SCREEN 0x154
+#define SK_NUMLOCK 0x145
+#define SK_SCROLLLOCK 0x46
+#define SK_PAUSE 0x45
+
+#define SK_MEDIA_PLAY_PAUSE 0xE022
+#define SK_MEDIA_NEXT_TRACK 0xE019
+#define SK_MEDIA_PREV_TRACK 0xE010
+#define SK_MEDIA_STOP 0xE024
+#define SK_VOLUME_MUTE 0xE020
+#define SK_VOLUME_DOWN 0xE02E
+#define SK_VOLUME_UP 0xE030
 
 #define SK_PLUS 0x0d
 #define SK_COMMA 0x33
@@ -244,6 +323,11 @@ KEY_DEF key_table[] = {
     {"RIGHT", SK_RIGHT, VK_RIGHT},
     {"DOWN", SK_DOWN, VK_DOWN},
 
+    {"LBRACKET", SK_LBRACKET, VK_LBRACKET},
+    {"RBRACKET", SK_RBRACKET, VK_RBRACKET},
+    {"BACKSLASH", SK_BACKSLASH, VK_BACKSLASH},
+    {"APOSTROPHE", SK_APOSTROPHE, VK_APOSTROPHE},
+
     {"F1", SK_F1, VK_F1},
     {"F2", SK_F2, VK_F2},
     {"F3", SK_F3, VK_F3},
@@ -256,7 +340,18 @@ KEY_DEF key_table[] = {
     {"F10", SK_F10, VK_F10},
     {"F11", SK_F11, VK_F11},
     {"F12", SK_F12, VK_F12},
+    {"F13", SK_F13, VK_F13},
+    {"F14", SK_F14, VK_F14},
+    {"F15", SK_F15, VK_F15},
+    {"F16", SK_F16, VK_F16},
+    {"F17", SK_F17, VK_F17},
+    {"F18", SK_F18, VK_F18},
+    {"F19", SK_F19, VK_F19},
+    {"F20", SK_F20, VK_F20},
+    {"F21", SK_F21, VK_F21},
+    {"F22", SK_F22, VK_F22},
     {"F23", SK_F23, VK_F23},
+    {"F24", SK_F24, VK_F24},
 
     {"KEY_0", SK_KEY_0, VK_KEY_0},
     {"KEY_1", SK_KEY_1, VK_KEY_1},
@@ -296,6 +391,23 @@ KEY_DEF key_table[] = {
     {"KEY_Y", SK_KEY_Y, VK_KEY_Y},
     {"KEY_Z", SK_KEY_Z, VK_KEY_Z},
 
+    {"NUM0", SK_NUM0, VK_NUM0},
+    {"NUM1", SK_NUM1, VK_NUM1},
+    {"NUM2", SK_NUM2, VK_NUM2},
+    {"NUM3", SK_NUM3, VK_NUM3},
+    {"NUM4", SK_NUM4, VK_NUM4},
+    {"NUM5", SK_NUM5, VK_NUM5},
+    {"NUM6", SK_NUM6, VK_NUM6},
+    {"NUM7", SK_NUM7, VK_NUM7},
+    {"NUM8", SK_NUM8, VK_NUM8},
+    {"NUM9", SK_NUM9, VK_NUM9},
+    {"NUM_MULTIPLY", SK_NUM_MULTIPLY, VK_NUM_MULTIPLY},
+    {"NUM_ADD", SK_NUM_ADD, VK_NUM_ADD},
+    {"NUM_SUBTRACT", SK_NUM_SUBTRACT, VK_NUM_SUBTRACT},
+    {"NUM_DECIMAL", SK_NUM_DECIMAL, VK_NUM_DECIMAL},
+    {"NUM_DIVIDE", SK_NUM_DIVIDE, VK_NUM_DIVIDE},
+
+    {"APPS", SK_APPS, VK_APPS},
     {"INSERT", SK_INSERT, VK_INSERT},
     {"DELETE", SK_DELETE, VK_DELETE},
     {"HOME", SK_HOME, VK_HOME},
@@ -303,18 +415,18 @@ KEY_DEF key_table[] = {
     {"PAGE_UP", SK_PAGE_UP, VK_PAGE_UP},
     {"PAGE_DOWN", SK_PAGE_DOWN, VK_PAGE_DOWN},
 
-    {"PRINT_SCREEN", 0, VK_PRINT_SCREEN},
-    {"NUMLOCK", 0, VK_NUMLOCK},
-    {"SCROLLLOCK", 0, VK_SCROLLLOCK},
-    {"PAUSE", 0, VK_PAUSE},
+    {"PRINT_SCREEN", SK_PRINT_SCREEN, VK_PRINT_SCREEN},
+    {"NUMLOCK", SK_NUMLOCK, VK_NUMLOCK},
+    {"SCROLLLOCK", SK_SCROLLLOCK, VK_SCROLLLOCK},
+    {"PAUSE", SK_PAUSE, VK_PAUSE},
 
-    {"MEDIA_PLAY_PAUSE", 0, VK_MEDIA_PLAY_PAUSE},
-    {"MEDIA_NEXT_TRACK", 0, VK_MEDIA_NEXT_TRACK},
-    {"MEDIA_PREV_TRACK", 0, VK_MEDIA_PREV_TRACK},
-    {"MEDIA_STOP", 0, VK_MEDIA_STOP},
-    {"VOLUME_MUTE", 0, VK_VOLUME_MUTE},
-    {"VOLUME_DOWN", 0, VK_VOLUME_DOWN},
-    {"VOLUME_UP", 0, VK_VOLUME_UP},
+    {"MEDIA_PLAY_PAUSE", SK_MEDIA_PLAY_PAUSE, VK_MEDIA_PLAY_PAUSE},
+    {"MEDIA_NEXT_TRACK", SK_MEDIA_NEXT_TRACK, VK_MEDIA_NEXT_TRACK},
+    {"MEDIA_PREV_TRACK", SK_MEDIA_PREV_TRACK, VK_MEDIA_PREV_TRACK},
+    {"MEDIA_STOP", SK_MEDIA_STOP, VK_MEDIA_STOP},
+    {"VOLUME_MUTE", SK_VOLUME_MUTE, VK_VOLUME_MUTE},
+    {"VOLUME_DOWN", SK_VOLUME_DOWN, VK_VOLUME_DOWN},
+    {"VOLUME_UP", SK_VOLUME_UP, VK_VOLUME_UP},
 
     {"PLUS", SK_PLUS, VK_PLUS},
     {"COMMA", SK_COMMA, VK_COMMA},
@@ -392,8 +504,6 @@ char * friendly_virt_code_name(int code)
     {
     case MOUSE_DUMMY_VK:
         return "<MOUSE INPUT>";
-    case 0:
-        return "<ZERO_CODE>";
     case 0x01:
         return "<MOUSE_LEFT>";
     case 0x02:
@@ -442,64 +552,10 @@ char * friendly_virt_code_name(int code)
         return "<EXECUTE>";
     case 0x2F:
         return "<HELP>";
-    case 0x5D:
-        return "<APPS>";
     case 0x5F:
         return "<SLEEP>";
-    case 0x60:
-        return "<NUMPAD_0>";
-    case 0x61:
-        return "<NUMPAD_1>";
-    case 0x62:
-        return "<NUMPAD_2>";
-    case 0x63:
-        return "<NUMPAD_3>";
-    case 0x64:
-        return "<NUMPAD_4>";
-    case 0x65:
-        return "<NUMPAD_5>";
-    case 0x66:
-        return "<NUMPAD_6>";
-    case 0x67:
-        return "<NUMPAD_7>";
-    case 0x68:
-        return "<NUMPAD_8>";
-    case 0x69:
-        return "<NUMPAD_9>";
-    case 0x6A:
-        return "<MULTIPLY>";
-    case 0x6B:
-        return "<ADD>";
     case 0x6C:
         return "<SEPARATOR>";
-    case 0x6D:
-        return "<SUBTRACT>";
-    case 0x6E:
-        return "<DECIMAL>";
-    case 0x6F:
-        return "<DIVIDE>";
-    case 0x7C:
-        return "<F13>";
-    case 0x7D:
-        return "<F14>";
-    case 0x7E:
-        return "<F15>";
-    case 0x7F:
-        return "<F16>";
-    case 0x80:
-        return "<F17>";
-    case 0x81:
-        return "<F18>";
-    case 0x82:
-        return "<F19>";
-    case 0x83:
-        return "<F20>";
-    case 0x84:
-        return "<F21>";
-    case 0x85:
-        return "<F22>";
-    case 0x86:
-        return "<F23>";
     case 0x87:
         return "<F24>";
     case 0xA6:
@@ -516,20 +572,6 @@ char * friendly_virt_code_name(int code)
         return "<BROWSER_FAVORITES>";
     case 0xAC:
         return "<BROWSER_HOME>";
-    case 0xAD:
-        return "<VOLUME_MUTE>";
-    case 0xAE:
-        return "<VOLUME_DOWN>";
-    case 0xAF:
-        return "<VOLUME_UP>";
-    case 0xB0:
-        return "<MEDIA_NEXT_TRACK>";
-    case 0xB1:
-        return "<MEDIA_PREV_TRACK>";
-    case 0xB2:
-        return "<MEDIA_STOP>";
-    case 0xB3:
-        return "<MEDIA_PLAY_PAUSE>";
     case 0xB4:
         return "<LAUNCH_MAIL>";
     case 0xB5:
@@ -538,20 +580,6 @@ char * friendly_virt_code_name(int code)
         return "<LAUNCH_APP1>";
     case 0xB7:
         return "<LAUNCH_APP2>";
-    case 0xBA:
-        return "<OEM_1>";
-    case 0xBF:
-        return "<OEM_2>";
-    case 0xC0:
-        return "<OEM_3>";
-    case 0xDB:
-        return "<OEM_4>";
-    case 0xDC:
-        return "<OEM_5>";
-    case 0xDD:
-        return "<OEM_6>";
-    case 0xDE:
-        return "<OEM_7>";
     case 0xDF:
         return "<OEM_8>";
     case 0xE2:
@@ -579,7 +607,7 @@ char * friendly_virt_code_name(int code)
     case 0xFD:
         return "<PA1>";
     case 0xFE:
-        return "<OEM_CLEA>";
+        return "<OEM_CLEAR>";
     default:
         return "<UNKNOWN>";
     }

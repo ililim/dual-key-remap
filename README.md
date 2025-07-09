@@ -2,6 +2,9 @@
 
 Remap any key to any other two keys on Windows. Most commonly used to remap CapsLock to Escape when pressed alone and Ctrl when pressed with other keys. Written in C to run at the lowest Windows API level for speed and reliability 🔥.
 
+> [!NOTE]
+> Thoughts on future of dual-key-remap and the path towards v1: https://github.com/ililim/dual-key-remap/discussions/74
+
 ## Features
 
 - Fast with minimal cpu footprint
