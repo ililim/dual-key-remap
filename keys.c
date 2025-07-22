@@ -164,10 +164,10 @@ typedef struct KeyDef KEY_DEF;
 #define SK_SPACE 0x39
 #define SK_TAB 0x0F
 
-#define SK_UP 0X48
-#define SK_LEFT 0X4B
-#define SK_RIGHT 0X4D
-#define SK_DOWN 0X50
+#define SK_UP 0xE048
+#define SK_LEFT 0xE04B
+#define SK_RIGHT 0xE04D
+#define SK_DOWN 0xE050
 
 #define SK_LBRACKET 0x1A
 #define SK_RBRACKET 0x1B
@@ -254,17 +254,17 @@ typedef struct KeyDef KEY_DEF;
 #define SK_NUM_DIVIDE 0xE035
 
 #define SK_APPS 0xE05D
-#define SK_INSERT 0x52
-#define SK_DELETE 0x53
-#define SK_HOME 0x47
-#define SK_END 0x4f
-#define SK_PAGE_UP 0x49
-#define SK_PAGE_DOWN 0x51
+#define SK_INSERT 0xE052u
+#define SK_DELETE 0xE053u
+#define SK_HOME 0xE047u
+#define SK_END 0xE04Fu
+#define SK_PAGE_UP 0xE049u
+#define SK_PAGE_DOWN 0xE051u
 
-#define SK_PRINT_SCREEN 0x154
+#define SK_PRINT_SCREEN 0xE037
 #define SK_NUMLOCK 0x145
 #define SK_SCROLLLOCK 0x46
-#define SK_PAUSE 0x45
+#define SK_PAUSE 0xE11D // first key of pause sequence
 
 #define SK_MEDIA_PLAY_PAUSE 0xE022
 #define SK_MEDIA_NEXT_TRACK 0xE019
