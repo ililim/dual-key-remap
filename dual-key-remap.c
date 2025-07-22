@@ -82,6 +82,18 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
     return (block_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
 }
 
+static void ensure_capslock_off(void) {
+    SHORT state = GetKeyState(VK_CAPITAL);
+    if (state & 1) {
+        printf("Detected capslock active: toggling it off...\n");
+        USHORT scan = (USHORT)MapVirtualKey(VK_CAPITAL, MAPVK_VK_TO_VSC);
+        // send injected CapsLock DOWN + UP to clear toggle
+        send_input(scan, VK_CAPITAL, DOWN);
+        send_input(scan, VK_CAPITAL, UP);
+    }
+}
+
+
 void create_console()
 {
     if (AllocConsole()) {
@@ -166,6 +178,12 @@ int main()
         printf("-- DEBUG MODE --\n");
     } else {
         destroy_console();
+    }
+
+
+    // If we're remapping capslock, clear its state so we won't start stuck on
+    if (find_remap_for_virt_code(VK_CAPITAL)) {
+        ensure_capslock_off();
     }
 
     MSG msg;
