@@ -2,8 +2,9 @@
 All notable changes to this project will be documented in this file.
 
 ## 0.8
+### Added
 ### Changed
-- Added more keys: Numpad, media keys, F13-F24, various brackets and some other rare keys
+- Added more keys: Numpad, pause, media keys, F13-F24, various brackets and some other rare keys
 - Added support for a NOOP key, useful for when you want to rebind a key to do nothing
 - Improved debug mode with clearer logs. In addition if the DEBUG env var is set DKR will launch in debug mode.
 ### Fixed
