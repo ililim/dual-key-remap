@@ -444,10 +444,9 @@ KEY_DEF key_table[] = {
 
 // Shortcuts to common keys (useful for debugging/testing)
 
-// Modifier shortcuts (update indices to match new order)
+KEY_DEF * CTRL  = &key_table[0];
 KEY_DEF * LCTRL = &key_table[0];
 KEY_DEF * RCTRL = &key_table[1];
-KEY_DEF * CTRL  = &key_table[2];
 KEY_DEF * LSHIFT = &key_table[3];
 KEY_DEF * RSHIFT = &key_table[4];
 KEY_DEF * SHIFT = &key_table[5];
@@ -458,13 +457,12 @@ KEY_DEF * LWIN = &key_table[9];
 KEY_DEF * RWIN = &key_table[10];
 KEY_DEF * WIN = &key_table[11];
 
-// Other shortcuts (indices shifted by +3 due to added WIN alias)
-KEY_DEF * CAPS  = &key_table[15];
-KEY_DEF * ENTER = &key_table[16];
-KEY_DEF * ESC   = &key_table[17];
-KEY_DEF * SPACE = &key_table[18];
-KEY_DEF * TAB   = &key_table[19];
-KEY_DEF * NOOP  = &key_table[20];
+KEY_DEF * CAPS  = &key_table[13];
+KEY_DEF * ENTER = &key_table[14];
+KEY_DEF * ESC   = &key_table[15];
+KEY_DEF * SPACE = &key_table[16];
+KEY_DEF * TAB   = &key_table[17];
+KEY_DEF * NOOP  = &key_table[18];
 KEY_DEF * MOUSE = &(struct KeyDef){"<MOUSE>", 0, MOUSE_DUMMY_VK};
 
 KEY_DEF * find_key_def_by_name(char * name)
