@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## 0.8
 ### Added
+- We now turn capslock off when launching (if it's being remapped) to avoid you being unable to toggle it.
 ### Changed
 - Added more keys: Numpad, pause, media keys, F13-F24, various brackets and some other rare keys
 - Added support for a NOOP key, useful for when you want to rebind a key to do nothing
