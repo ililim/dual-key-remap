@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
 #ifdef _WIN32
 #  include <io.h>
 #  define dup  _dup
 #  define dup2 _dup2
 #  define fileno _fileno
+#else
+#  include <unistd.h>
 #endif
 
 #include "input.h"
