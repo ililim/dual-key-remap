@@ -24,6 +24,8 @@ HHOOK g_keyboard_hook;
 
 void send_input(int scan_code, int virt_code, enum Direction direction)
 {
+    if (scan_code == 0 && virt_code == 0) return;
+
     INPUT input = {0};
     input.type = INPUT_KEYBOARD;
     input.ki.time = 0;
