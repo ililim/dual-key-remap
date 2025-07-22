@@ -18,4 +18,4 @@ debug:
 release:
 	$(MAKE) kill
 	$(MAKE) build
-	powershell .\release.ps1
+	powershell -ExecutionPolicy Bypass -File .\release.ps1
