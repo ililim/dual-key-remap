@@ -176,7 +176,7 @@ int event_other_input()
 int handle_input(int scan_code, int virt_code, int direction, int is_injected)
 {
     log_handle_input_start(scan_code, virt_code, direction, is_injected);
-    // Note: injected keys are never remapped to avoid complex nested scenarios
+    // Note: injected keys are not remapped to avoid recursion loops and to support key swapping
     struct Remap * remap_for_input = is_injected ? 0 : find_remap_for_virt_code(virt_code);
     int block_input = 0;
 
