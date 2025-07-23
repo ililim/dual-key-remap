@@ -1,4 +1,4 @@
-.PHONY: tests build kill debug release
+.PHONY: tests build kill rebuild restart debug release
 
 tests:
 	cl tests.c && .\tests.exe
@@ -9,11 +9,14 @@ build:
 kill:
 	@taskkill /f /im "dual-key-remap.exe" || echo dual-key-remap is not running
 
-debug:
+rebuild:
 	$(MAKE) kill
 	$(MAKE) build
-	set DEBUG=1
-	.\dual-key-remap.exe
+
+restart:
+	$(MAKE) kill
+	$(MAKE) build
+	start dual-key-remap.exe
 
 release:
 	$(MAKE) kill
