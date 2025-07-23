@@ -7,6 +7,7 @@
 #include "input.h"
 #include "keys.c"
 #include "remap.c"
+#include "tray.c"
 
 // Globals
 // ----------------
@@ -188,6 +189,11 @@ int main()
         ensure_capslock_off();
     }
 
+    // Initialize tray icon
+    if (!init_tray_icon()) {
+        if (g_debug) printf("Failed to create tray icon\n");
+    }
+
     MSG msg;
     while (GetMessage(&msg, 0, 0, 0) > 0)
     {
@@ -195,8 +201,10 @@ int main()
         DispatchMessage(&msg);
     }
 
-    end:
-        printf("\nPress any key to exit...\n");
-        getch();
-        return 1;
+    cleanup_tray_icon();
+
+end:
+    printf("Press any key to exit...\n");
+    getchar();
+    return 0;
 }
