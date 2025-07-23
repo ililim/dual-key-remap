@@ -86,7 +86,7 @@ void reload_config() {
     reset_config();
     int error = load_config_file(config_path);
     if (error) {
-        MessageBox("Config", "Failed to reload config file", "dual-key-remap config error", MB_ICONERROR);
+        MessageBox(NULL, "Failed to reload config file", "dual-key-remap config error", MB_ICONERROR);
     } else if (g_debug) {
         printf("Configuration reloaded from config file\n");
     }
