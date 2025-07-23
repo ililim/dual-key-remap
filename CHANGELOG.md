@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.9
+### Added
+- Added a tray icon! You can now pause/reload/exit dual-key-remap from the tray icon.
+### Changed
+### Fixed
+
 ## 0.8
 ### Added
 - We now turn capslock off when launching (if it's being remapped) to avoid you being unable to toggle it.
