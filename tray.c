@@ -82,15 +82,17 @@ void reveal_config() {
 void reload_config() {
     wchar_t config_path[MAX_PATH];
     put_config_path(config_path);
-
+    create_console(); // load_config_file can print, so ensure console is available
     reset_config();
     int error = load_config_file(config_path);
-
     if (error) {
-        MessageBox(NULL, "Failed to reload config file", "Error", MB_ICONERROR);
+        MessageBox("Config", "Failed to reload config file", "dual-key-remap config error", MB_ICONERROR);
     } else if (g_debug) {
         printf("Configuration reloaded from config file\n");
     }
+    update_menu_item(MENU_DEBUG_TOGGLE, g_debug ? MENU_TEXT_DEBUG_STOP : MENU_TEXT_DEBUG_START);
+    if (!g_debug) destroy_console();
+    else printf("-- DEBUG MODE --\n");
 }
 
 void toggle_pause() {
@@ -103,8 +105,6 @@ void toggle_pause() {
 void toggle_debug() {
     g_debug = !g_debug;
     update_menu_item(MENU_DEBUG_TOGGLE, g_debug ? MENU_TEXT_DEBUG_STOP : MENU_TEXT_DEBUG_START);
-
-    // Show or hide console window based on debug state
     if (g_debug) {
         create_console();
         printf("-- DEBUG MODE --\n");

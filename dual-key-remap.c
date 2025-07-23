@@ -99,6 +99,8 @@ static void ensure_capslock_off(void) {
 
 void create_console()
 {
+    if (GetConsoleWindow() != NULL) return; // Console already exists, nothing to do
+
     if (AllocConsole()) {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
