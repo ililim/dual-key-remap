@@ -1,4 +1,4 @@
-#define VERSION "0.8"
+#define VERSION "0.9"
 #define AUTHOR "ililim"
 
 #include <windows.h>
@@ -7,6 +7,7 @@
 #include "input.h"
 #include "keys.c"
 #include "remap.c"
+#include "tray.c"
 
 // Globals
 // ----------------
@@ -24,6 +25,8 @@ HHOOK g_keyboard_hook;
 
 void send_input(int scan_code, int virt_code, enum Direction direction)
 {
+    if (scan_code == 0 && virt_code == 0) return;
+
     INPUT input = {0};
     input.type = INPUT_KEYBOARD;
     input.ki.time = 0;
@@ -82,8 +85,22 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
     return (block_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
 }
 
+static void ensure_capslock_off(void) {
+    SHORT state = GetKeyState(VK_CAPITAL);
+    if (state & 1) {
+        printf("Detected capslock active: toggling it off...\n");
+        USHORT scan = (USHORT)MapVirtualKey(VK_CAPITAL, MAPVK_VK_TO_VSC);
+        // send injected CapsLock DOWN + UP to clear toggle
+        send_input(scan, VK_CAPITAL, DOWN);
+        send_input(scan, VK_CAPITAL, UP);
+    }
+}
+
+
 void create_console()
 {
+    if (GetConsoleWindow() != NULL) return; // Console already exists, nothing to do
+
     if (AllocConsole()) {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
@@ -168,6 +185,17 @@ int main()
         destroy_console();
     }
 
+
+    // If we're remapping capslock, clear its state so we won't start stuck on
+    if (find_remap_for_virt_code(VK_CAPITAL)) {
+        ensure_capslock_off();
+    }
+
+    // Initialize tray icon
+    if (!init_tray_icon()) {
+        if (g_debug) printf("Failed to create tray icon\n");
+    }
+
     MSG msg;
     while (GetMessage(&msg, 0, 0, 0) > 0)
     {
@@ -175,8 +203,10 @@ int main()
         DispatchMessage(&msg);
     }
 
-    end:
-        printf("\nPress any key to exit...\n");
-        getch();
-        return 1;
+    cleanup_tray_icon();
+
+end:
+    printf("Press any key to exit...\n");
+    getchar();
+    return 0;
 }

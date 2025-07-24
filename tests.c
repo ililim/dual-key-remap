@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
 #ifdef _WIN32
 #  include <io.h>
 #  define dup  _dup
 #  define dup2 _dup2
 #  define fileno _fileno
+#else
+#  include <unistd.h>
 #endif
 
 #include "input.h"
@@ -31,7 +32,7 @@ void end_section(void)
 {
     if (*g_sec) {
         int failed = g_failures - g_sec_fail_at;
-        printf("%s\n", failed ? "" : " ✔");
+        printf("%s\n", failed ? " FAIL" : " PASS");
         g_sec_total++;
         if (!failed) g_sec_pass++;
     }
@@ -58,11 +59,11 @@ void end_section(void)
 void summary(void)
 {
     end_section();
-    puts("────────────────────────────────────────────────────────────");
+    puts("------------------------------------------------------------");
     printf("Sections: %d  Passed: %d  Failed: %d   Assertions: %d/%d\n",
            g_sec_total, g_sec_pass, g_sec_total - g_sec_pass,
            g_assertions - g_failures, g_assertions);
-    printf("%s\n", g_failures ? "Some tests failed ✘" : "All tests passed! ✔");
+    printf("%s\n", g_failures ? "Some tests failed (FAIL)" : "All tests passed! (PASS)");
 }
 
 /* Output capture */

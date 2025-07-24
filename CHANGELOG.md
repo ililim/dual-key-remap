@@ -1,9 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## 0.8
+## 0.9
+### Added
+- Added a tray icon! You can now pause/reload/exit dual-key-remap from the tray icon.
 ### Changed
-- Added more keys: Numpad, media keys, F13-F24, various brackets and some other rare keys
+### Fixed
+
+## 0.8
+### Added
+- We now turn capslock off when launching (if it's being remapped) to avoid you being unable to toggle it.
+### Changed
+- Added more keys: Numpad, pause, media keys, F13-F24, various brackets and some other rare keys
 - Added support for a NOOP key, useful for when you want to rebind a key to do nothing
 - Improved debug mode with clearer logs. In addition if the DEBUG env var is set DKR will launch in debug mode.
 ### Fixed

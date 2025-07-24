@@ -164,10 +164,10 @@ typedef struct KeyDef KEY_DEF;
 #define SK_SPACE 0x39
 #define SK_TAB 0x0F
 
-#define SK_UP 0X48
-#define SK_LEFT 0X4B
-#define SK_RIGHT 0X4D
-#define SK_DOWN 0X50
+#define SK_UP 0xE048
+#define SK_LEFT 0xE04B
+#define SK_RIGHT 0xE04D
+#define SK_DOWN 0xE050
 
 #define SK_LBRACKET 0x1A
 #define SK_RBRACKET 0x1B
@@ -254,17 +254,17 @@ typedef struct KeyDef KEY_DEF;
 #define SK_NUM_DIVIDE 0xE035
 
 #define SK_APPS 0xE05D
-#define SK_INSERT 0x52
-#define SK_DELETE 0x53
-#define SK_HOME 0x47
-#define SK_END 0x4f
-#define SK_PAGE_UP 0x49
-#define SK_PAGE_DOWN 0x51
+#define SK_INSERT 0xE052u
+#define SK_DELETE 0xE053u
+#define SK_HOME 0xE047u
+#define SK_END 0xE04Fu
+#define SK_PAGE_UP 0xE049u
+#define SK_PAGE_DOWN 0xE051u
 
-#define SK_PRINT_SCREEN 0x154
+#define SK_PRINT_SCREEN 0xE037
 #define SK_NUMLOCK 0x145
 #define SK_SCROLLLOCK 0x46
-#define SK_PAUSE 0x45
+#define SK_PAUSE 0xE11D // first key of pause sequence
 
 #define SK_MEDIA_PLAY_PAUSE 0xE022
 #define SK_MEDIA_NEXT_TRACK 0xE019
@@ -294,20 +294,22 @@ typedef struct KeyDef KEY_DEF;
 //
 // For backwards compatibility modifiers refer to the left key by default.
 KEY_DEF key_table[] = {
-    {"CTRL", SK_LEFT_CTRL, VK_LEFT_CTRL},
+
     {"LEFT_CTRL", SK_LEFT_CTRL, VK_LEFT_CTRL},
     {"RIGHT_CTRL", SK_RIGHT_CTRL, VK_RIGHT_CTRL},
+    {"CTRL", SK_LEFT_CTRL, VK_LEFT_CTRL},
 
-    {"SHIFT", SK_LEFT_SHIFT, VK_LEFT_SHIFT},
     {"LEFT_SHIFT", SK_LEFT_SHIFT, VK_LEFT_SHIFT},
     {"RIGHT_SHIFT", SK_RIGHT_SHIFT, VK_RIGHT_SHIFT},
+    {"SHIFT", SK_LEFT_SHIFT, VK_LEFT_SHIFT},
 
-    {"ALT", SK_LEFT_ALT, VK_LEFT_ALT},
     {"LEFT_ALT", SK_LEFT_ALT, VK_LEFT_ALT},
     {"RIGHT_ALT", SK_RIGHT_ALT, VK_RIGHT_ALT},
+    {"ALT", SK_LEFT_ALT, VK_LEFT_ALT},
 
     {"LEFT_WIN", SK_LEFT_WIN, VK_LEFT_WIN},
     {"RIGHT_WIN", SK_RIGHT_WIN, VK_RIGHT_WIN},
+    {"WIN", SK_LEFT_WIN, VK_LEFT_WIN},
 
     {"BACKSPACE", SK_BACKSPACE, VK_BACKSPACE},
     {"CAPSLOCK", SK_CAPSLOCK, VK_CAPSLOCK},
@@ -441,19 +443,26 @@ KEY_DEF key_table[] = {
 #define KEY_TABLE_LEN (sizeof(key_table) / sizeof(struct KeyDef))
 
 // Shortcuts to common keys (useful for debugging/testing)
+
 KEY_DEF * CTRL  = &key_table[0];
-KEY_DEF * LCTRL = &key_table[1];
-KEY_DEF * RCTRL = &key_table[2];
-KEY_DEF * SHIFT = &key_table[3];
-KEY_DEF * LSHIFT = &key_table[4];
-KEY_DEF * RSHIFT = &key_table[5];
-KEY_DEF * ALT   = &key_table[6];
-KEY_DEF * CAPS  = &key_table[12];
-KEY_DEF * ENTER = &key_table[13];
-KEY_DEF * ESC   = &key_table[14];
-KEY_DEF * SPACE = &key_table[15];
-KEY_DEF * TAB   = &key_table[16];
-KEY_DEF * NOOP  = &key_table[17];
+KEY_DEF * LCTRL = &key_table[0];
+KEY_DEF * RCTRL = &key_table[1];
+KEY_DEF * LSHIFT = &key_table[3];
+KEY_DEF * RSHIFT = &key_table[4];
+KEY_DEF * SHIFT = &key_table[5];
+KEY_DEF * LALT = &key_table[6];
+KEY_DEF * RALT = &key_table[7];
+KEY_DEF * ALT = &key_table[8];
+KEY_DEF * LWIN = &key_table[9];
+KEY_DEF * RWIN = &key_table[10];
+KEY_DEF * WIN = &key_table[11];
+
+KEY_DEF * CAPS  = &key_table[13];
+KEY_DEF * ENTER = &key_table[14];
+KEY_DEF * ESC   = &key_table[15];
+KEY_DEF * SPACE = &key_table[16];
+KEY_DEF * TAB   = &key_table[17];
+KEY_DEF * NOOP  = &key_table[18];
 KEY_DEF * MOUSE = &(struct KeyDef){"<MOUSE>", 0, MOUSE_DUMMY_VK};
 
 KEY_DEF * find_key_def_by_name(char * name)

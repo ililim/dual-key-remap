@@ -1,5 +1,9 @@
 # Windows Dual Key Remap: Capslock to Ctrl/Escape
 
+<img align="right" width="105" height="105" alt="image" src="https://github.com/user-attachments/assets/cf5a64a7-85cd-47db-a0eb-09758bfa10df" />
+
+
+
 Remap any key to any other two keys on Windows. Most commonly used to remap CapsLock to Escape when pressed alone and Ctrl when pressed with other keys. Written in C to run at the lowest Windows API level for speed and reliability 🔥.
 
 > [!NOTE]
