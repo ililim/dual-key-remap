@@ -32,7 +32,7 @@ KEY_DEF key_table[] = {
 // Shortcuts to common keys and some special codes
 #define MOUSE_DUMMY_VK 0xFF
 #define SK_LEFT_SHIFT   0x002A
-#define VK_LEFT_SHIFT   0xA0  
+#define VK_LEFT_SHIFT   0xA0
 #define VK_RIGHT_SHIFT  0xA1
 KEY_DEF * CTRL  = &key_table[k_CTRL];
 KEY_DEF * LCTRL = &key_table[k_LEFT_CTRL];
@@ -149,8 +149,6 @@ char * friendly_virt_code_name(int code)
         return "<SLEEP>";
     case 0x6C:
         return "<SEPARATOR>";
-    case 0x87:
-        return "<F24>";
     case 0xA6:
         return "<BROWSER_BACK>";
     case 0xA7:
