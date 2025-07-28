@@ -289,6 +289,8 @@ int main(void)
 
     g_debug = 0;
 
+    #include "test_keys.c"
+
     summary();
     clear_out();
     return g_failures ? EXIT_FAILURE : EXIT_SUCCESS;
