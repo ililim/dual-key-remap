@@ -35,11 +35,19 @@ struct Remap
 
 int g_paused = 0;
 int g_debug = 0;
+char g_last_error[256] = {0};
 struct Remap * g_remap_list;
 struct Remap * g_remap_parsee = 0;
 
 // Debug Logging
 // --------------------------------------
+
+#define log_error(fmt, ...) do { \
+    if (g_debug) { \
+        printf(fmt, ##__VA_ARGS__); \
+    } \
+    sprintf(g_last_error, fmt, ##__VA_ARGS__); \
+} while(0)
 
 char * fmt_dir(enum Direction dir)
 {
@@ -219,7 +227,7 @@ int load_config_line(char *line, int linenum)
 {
     char buf[256];
     if (strlen(line) >= sizeof(buf) - 1) {
-        fprintf(stderr,
+        log_error(
                 "Config error (line %d): line too long (max %zu chars)\n",
                 linenum, sizeof(buf) - 2);
         return 1;
@@ -235,7 +243,7 @@ int load_config_line(char *line, int linenum)
     // split key = value
     char *after_eq = strchr(line, '=');
     if (!after_eq) {
-        fprintf(stderr,
+        log_error(
                 "Config error (line %d): expected key=value\n", linenum);
         return 1;
     }
@@ -257,7 +265,7 @@ int load_config_line(char *line, int linenum)
             g_debug = 0;
             return 0;
         }
-        fprintf(stderr,
+        log_error(
                 "Config error (line %d): debug must be 0/1/true/false\n",
                 linenum);
         return 1;
@@ -272,11 +280,10 @@ int load_config_line(char *line, int linenum)
     if (field) {
         KEY_DEF *key_def = find_key_def_by_name(after_eq);
         if (!key_def) {
-            fprintf(stderr,
-                    "Config error (line %d): invalid key name '%s'\n",
+            log_error(
+                    "Config error (line %d): invalid key name '%s'\n"
+                    "See the online docs for the latest list of key names.\n",
                     linenum, after_eq);
-            fprintf(stderr,
-                    "Key names may have changed; see the wiki for the new list.\n");
             return 1;
         }
 
@@ -287,7 +294,7 @@ int load_config_line(char *line, int linenum)
         // fill the appropriate field & catch duplicate remap_key
         if (field == 1) {
             if (g_remap_parsee->from && !parsee_is_valid()) {
-                fprintf(stderr,
+                log_error(
                         "Config error (line %d): Incomplete remapping.\n"
                         "Each remap needs remap_key, when_alone and with_other\n"
                         "before another remap_key.\n",
@@ -310,8 +317,7 @@ int load_config_line(char *line, int linenum)
     }
 
     // anything else is unknown
-    fprintf(stderr,
-            "Config error (line %d): invalid setting '%s'\n",
+    log_error("Config error (line %d): invalid setting '%s'\n",
             linenum, line);
     return 1;
 }

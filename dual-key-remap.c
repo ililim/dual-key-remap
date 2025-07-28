@@ -88,7 +88,7 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
 static void ensure_capslock_off(void) {
     SHORT state = GetKeyState(VK_CAPITAL);
     if (state & 1) {
-        printf("Detected capslock active: toggling it off...\n");
+        log_error("Detected capslock active: toggling it off...\n");
         USHORT scan = (USHORT)MapVirtualKey(VK_CAPITAL, MAPVK_VK_TO_VSC);
         // send injected CapsLock DOWN + UP to clear toggle
         send_input(scan, VK_CAPITAL, DOWN);
@@ -121,7 +121,7 @@ int load_config_file(wchar_t * path)
     char line[255];
 
     if (_wfopen_s(&file, path, L"r") > 0) {
-        printf("Cannot open configuration file '%ws'. Make sure it is in the same directory as 'dual-key-remap.exe'.\n",
+        log_error("Cannot open configuration file '%ws'. Make sure it is in the same directory as 'dual-key-remap.exe'.\n",
             path);
         return 1;
     }
@@ -148,13 +148,12 @@ void put_config_path(wchar_t * path)
 
 int main()
 {
-    // Initialization may print errors to stdout, create a console to show that output
-    create_console();
+    g_last_error[0] = '\0'; // Clear error buffer
 
     HANDLE mutex = CreateMutex(0, TRUE, "dual-key-remap.single-instance");
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        printf("dual-key-remap.exe is already running!\n");
+        log_error("dual-key-remap.exe is already running!\n");
         goto end;
     }
 
@@ -174,7 +173,7 @@ int main()
     g_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_callback, 0, 0);
 
     if (!g_mouse_hook || !g_keyboard_hook) {
-        printf("Failed to set keyboard or mouse hooks, aborting.\n");
+        log_error("Failed to set keyboard or mouse hooks, aborting.\n");
         goto end;
     }
 
@@ -206,7 +205,11 @@ int main()
     cleanup_tray_icon();
 
 end:
-    printf("Press any key to exit...\n");
-    getchar();
+    if (g_last_error[0] != '\0') {
+        create_console();
+        printf("%s", g_last_error);
+        printf("Press any key to exit...\n");
+        getchar();
+    }
     return 0;
 }
