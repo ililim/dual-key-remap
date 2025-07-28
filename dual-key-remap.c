@@ -96,26 +96,21 @@ static void ensure_capslock_off(void) {
     }
 }
 
-static BOOL WINAPI console_ctrl_handler(DWORD evt)
-{
-    switch (evt) {
-        case CTRL_CLOSE_EVENT:
-            destroy_console();
-            g_debug = 0;
-            update_tray();
-            return TRUE; // we handled it, don't kill us
-    }
-    return FALSE;
-}
 
 void create_console()
 {
-    if (GetConsoleWindow() != NULL) return; // Console already exists, nothing to do
+    if (GetConsoleWindow()) return; // Console already exists, nothing to do
 
     if (AllocConsole()) {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
-        SetConsoleCtrlHandler(console_ctrl_handler, TRUE);
+
+        // Remove the X button so that we don't accidentally close the main app
+        // Console can be closed by toggling debug mode off
+        HWND h = GetConsoleWindow();
+        HMENU sys = GetSystemMenu(h, FALSE);
+        if (sys) DeleteMenu(sys, SC_CLOSE, MF_BYCOMMAND);
+
         printf("== dual-key-remap (version: %s, author: %s) ==\n\n", VERSION, AUTHOR);
     }
 }
