@@ -53,6 +53,15 @@ void update_menu_item(UINT menu_id, const char* text) {
     SetMenuItemInfo(menu, menu_id, FALSE, &menu_item_info);
 }
 
+void update_tray(void) {
+    update_menu_item(MENU_PAUSE_RESUME, g_paused ? MENU_TEXT_RESUME : MENU_TEXT_PAUSE);
+    sprintf(tray_data.szTip, "dual-key-remap%s", g_paused ? " (off)" : "");
+    update_menu_item(MENU_DEBUG_TOGGLE, g_debug ? MENU_TEXT_DEBUG_STOP : MENU_TEXT_DEBUG_START);
+    
+    // Notify system tray of changes
+    Shell_NotifyIcon(NIM_MODIFY, &tray_data);
+}
+
 void open_url(const wchar_t* url) {
     ShellExecuteW(NULL, L"open", url, NULL, NULL, SW_SHOW);
 }
@@ -90,21 +99,19 @@ void reload_config() {
     } else if (g_debug) {
         printf("Configuration reloaded from config file\n");
     }
-    update_menu_item(MENU_DEBUG_TOGGLE, g_debug ? MENU_TEXT_DEBUG_STOP : MENU_TEXT_DEBUG_START);
+    update_tray();
     if (!g_debug) destroy_console();
     else printf("-- DEBUG MODE --\n");
 }
 
 void toggle_pause() {
     g_paused = !g_paused;
-    update_menu_item(MENU_PAUSE_RESUME, g_paused ? MENU_TEXT_RESUME : MENU_TEXT_PAUSE);
-    sprintf(tray_data.szTip, "dual-key-remap%s", g_paused ? " (off)" : "");
-    Shell_NotifyIcon(NIM_MODIFY, &tray_data);
+    update_tray();
 }
 
 void toggle_debug() {
     g_debug = !g_debug;
-    update_menu_item(MENU_DEBUG_TOGGLE, g_debug ? MENU_TEXT_DEBUG_STOP : MENU_TEXT_DEBUG_START);
+    update_tray();
     if (g_debug) {
         create_console();
         printf("-- DEBUG MODE --\n");
