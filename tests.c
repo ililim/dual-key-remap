@@ -79,6 +79,11 @@ void send_input(int scan,int virt,enum Direction dir){
 void user_input(int scan,int virt,enum Direction dir){
     if(!handle_input(scan,virt,dir,0)) push_out(scan,virt,dir);}
 
+/* Platform abstraction for debug output */
+int can_print(void) {
+    return 1;  /* Always available in tests */
+}
+
 /* DSL */
 #define IN(KEY,DIR)              user_input((KEY)->scan_code,(KEY)->virt_code,DIR)
 #define IN_MANUAL(SCAN,VIRT,DIR) user_input(SCAN,VIRT,DIR)

@@ -115,6 +115,11 @@ void destroy_console()
     FreeConsole();
 }
 
+int can_print(void)
+{
+    return GetConsoleWindow() != NULL;
+}
+
 int load_config_file(wchar_t * path)
 {
     FILE * file;
@@ -179,7 +184,7 @@ int main()
 
     // We're all good if we got this far, hide the console window unless we're debugging
     if (g_debug) {
-        printf("-- DEBUG MODE --\n");
+        if (can_print()) printf("-- DEBUG MODE --\n");
     } else {
         destroy_console();
     }
@@ -192,7 +197,7 @@ int main()
 
     // Initialize tray icon
     if (!init_tray_icon()) {
-        if (g_debug) printf("Failed to create tray icon\n");
+        if (g_debug && can_print()) printf("Failed to create tray icon\n");
     }
 
     MSG msg;

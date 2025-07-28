@@ -42,11 +42,19 @@ struct Remap * g_remap_parsee = 0;
 // Debug Logging
 // --------------------------------------
 
+extern int can_print(void);
+
 #define log_error(fmt, ...) do { \
-    if (g_debug) { \
+    if (g_debug && can_print()) { \
         printf(fmt, ##__VA_ARGS__); \
     } \
     sprintf(g_last_error, fmt, ##__VA_ARGS__); \
+} while(0)
+
+#define log_info(fmt, ...) do { \
+    if (g_debug && can_print()) { \
+        printf(fmt, ##__VA_ARGS__); \
+    } \
 } while(0)
 
 char * fmt_dir(enum Direction dir)
@@ -58,18 +66,17 @@ int log_indent_level = 0;
 int log_counter = 1;
 void print_log_prefix()
 {
-    printf("\n%03d. ", log_counter++);
+    log_info("\n%03d. ", log_counter++);
     for (int i = 0; i < log_indent_level; i++)
     {
-        printf("\t");
+        log_info("\t");
     }
 }
 
 void log_handle_input_start(int scan_code, int virt_code, int dir, int is_injected)
 {
-    if (!g_debug) return;
     print_log_prefix();
-    printf("[%s] %s %s (scan:0x%02x virt:0x%02x)",
+    log_info("[%s] %s %s (scan:0x%02x virt:0x%02x)",
         is_injected ? "output" : "input",
         friendly_virt_code_name(virt_code),
         fmt_dir(dir),
@@ -80,11 +87,10 @@ void log_handle_input_start(int scan_code, int virt_code, int dir, int is_inject
 
 void log_handle_input_end(int scan_code, int virt_code, int dir, int is_injected, int block_input)
 {
-    if (!g_debug) return;
     log_indent_level--;
     if (block_input) {
         print_log_prefix();
-        printf("#blocked-input# %s %s",
+        log_info("#blocked-input# %s %s",
             friendly_virt_code_name(virt_code),
             fmt_dir(dir));
     }
@@ -92,9 +98,8 @@ void log_handle_input_end(int scan_code, int virt_code, int dir, int is_injected
 
 void log_send_input(char * remap_name, KEY_DEF * key, int dir)
 {
-    if (!g_debug) return;
     print_log_prefix();
-    printf("(sending:%s) %s %s",
+    log_info("(sending:%s) %s %s",
         remap_name,
         key ? key->name : "???",
         fmt_dir(dir));
