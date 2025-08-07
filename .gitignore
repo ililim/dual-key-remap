@@ -3,6 +3,7 @@
 
 *.obj
 *.exe
+*.res
 temp*
 
 config.txt
