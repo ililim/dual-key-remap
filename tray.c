@@ -11,7 +11,6 @@
 #define MENU_PAUSE_RESUME    2001
 #define MENU_DEBUG_TOGGLE    2002
 #define MENU_REFRESH_CONFIG  2003
-#define MENU_EDIT_CONFIG     2004
 #define MENU_REVEAL_CONFIG   2005
 #define MENU_ABOUT           2006
 #define MENU_CHECK_UPDATES   2007
@@ -24,8 +23,8 @@
 // Menu text constants
 #define MENU_TEXT_PAUSE      "Pause"
 #define MENU_TEXT_RESUME     "Resume"
-#define MENU_TEXT_DEBUG_START "Start Debug Mode"
-#define MENU_TEXT_DEBUG_STOP  "Stop Debug Mode"
+#define MENU_TEXT_DEBUG_START "Start debug mode"
+#define MENU_TEXT_DEBUG_STOP  "Stop debug mode"
 
 // Buffer size for explorer.exe /select command formatting
 #define EXPLORER_ARGS_PADDING 20
@@ -57,7 +56,7 @@ void update_tray(void) {
     update_menu_item(MENU_PAUSE_RESUME, g_paused ? MENU_TEXT_RESUME : MENU_TEXT_PAUSE);
     sprintf(tray_data.szTip, "dual-key-remap%s", g_paused ? " (off)" : "");
     update_menu_item(MENU_DEBUG_TOGGLE, g_debug ? MENU_TEXT_DEBUG_STOP : MENU_TEXT_DEBUG_START);
-    
+
     // Notify system tray of changes
     Shell_NotifyIcon(NIM_MODIFY, &tray_data);
 }
@@ -72,12 +71,6 @@ void check_updates() {
 
 void open_about() {
     open_url(L"https://github.com/ililim/dual-key-remap");
-}
-
-void edit_config() {
-    wchar_t config_path[MAX_PATH];
-    put_config_path(config_path);
-    ShellExecuteW(NULL, L"open", config_path, NULL, NULL, SW_SHOW);
 }
 
 void reveal_config() {
@@ -125,14 +118,13 @@ void create_menu() {
 
     AppendMenu(menu, MF_STRING, MENU_PAUSE_RESUME, MENU_TEXT_PAUSE);
     AppendMenu(menu, MF_SEPARATOR, 0, NULL);
-    AppendMenu(menu, MF_STRING, MENU_REVEAL_CONFIG, "Show Config");
-    AppendMenu(menu, MF_STRING, MENU_EDIT_CONFIG, "Edit Config");
-    AppendMenu(menu, MF_STRING, MENU_REFRESH_CONFIG, "Reload Config");
+    AppendMenu(menu, MF_STRING, MENU_REVEAL_CONFIG, "Show config folder");
+    AppendMenu(menu, MF_STRING, MENU_REFRESH_CONFIG, "Reload config");
     AppendMenu(menu, MF_SEPARATOR, 0, NULL);
     AppendMenu(menu, MF_STRING, MENU_DEBUG_TOGGLE, g_debug ? MENU_TEXT_DEBUG_STOP : MENU_TEXT_DEBUG_START);
     AppendMenu(menu, MF_SEPARATOR, 0, NULL);
     AppendMenu(menu, MF_STRING, MENU_ABOUT, "About");
-    AppendMenu(menu, MF_STRING, MENU_CHECK_UPDATES, "Check Updates");
+    AppendMenu(menu, MF_STRING, MENU_CHECK_UPDATES, "Check updates");
     AppendMenu(menu, MF_SEPARATOR, 0, NULL);
     AppendMenu(menu, MF_STRING, MENU_QUIT, "Exit");
 }
@@ -157,7 +149,6 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpar
                 case MENU_PAUSE_RESUME:   toggle_pause(); break;
                 case MENU_DEBUG_TOGGLE:   toggle_debug(); break;
                 case MENU_REFRESH_CONFIG: reload_config(); break;
-                case MENU_EDIT_CONFIG:    edit_config(); break;
                 case MENU_REVEAL_CONFIG:  reveal_config(); break;
                 case MENU_ABOUT:          open_about(); break;
                 case MENU_CHECK_UPDATES:  check_updates(); break;
