@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <stdio.h>
-// #include "resource.h"  // Uncomment when using embedded resources
+#include "resource.h"
 
 // Tray icon constants
 #define WM_TRAY_ICON_MESSAGE (WM_USER + 1)
@@ -212,24 +212,14 @@ int init_tray_icon() {
     tray_data.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     tray_data.uCallbackMessage = WM_TRAY_ICON_MESSAGE;
 
-    // Load icon - try embedded resource first, then file, then default
-    // Uncomment these lines when resource.h is available:
-    // tray_data.hIcon = (HICON)LoadImage(GetModuleHandle(NULL),
-    //                                        MAKEINTRESOURCE(IDI_TRAY_ICON), IMAGE_ICON,
-    //                                        GetSystemMetrics(SM_CXSMICON),
-    //                                        GetSystemMetrics(SM_CYSMICON), 0);
+    // Load embedded icon resource
+    tray_data.hIcon = (HICON)LoadImage(GetModuleHandle(NULL),
+                                           MAKEINTRESOURCE(IDI_TRAY_ICON), IMAGE_ICON,
+                                           GetSystemMetrics(SM_CXSMICON),
+                                           GetSystemMetrics(SM_CYSMICON), 0);
 
-    // For now, load from file app folder
+    // Fallback to default application icon if resource loading fails
     if (!tray_data.hIcon) {
-        tray_data.hIcon = (HICON)LoadImage(NULL, "logo.ico", IMAGE_ICON,
-                                               GetSystemMetrics(SM_CXSMICON),
-                                               GetSystemMetrics(SM_CYSMICON),
-                                               LR_LOADFROMFILE);
-    }
-    if (!tray_data.hIcon) { // Try 16x16 fallback
-        tray_data.hIcon = (HICON)LoadImage(NULL, "logo.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
-    }
-    if (!tray_data.hIcon) { // Fallback to default application icon
         tray_data.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     }
 
