@@ -3,9 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## 0.9
 ### Added
-- Added a tray icon! You can now pause/reload/exit dual-key-remap from the tray icon.
-### Changed
-### Fixed
+- Added a tray icon: you can now pause/reload/exit dual-key-remap from the tray icon.
+- New config option `show_tray=0/1` to disable/enable the tray icon.
 
 ## 0.8
 ### Added

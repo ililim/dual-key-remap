@@ -35,6 +35,7 @@ struct Remap
 
 int g_paused = 0;
 int g_debug = 0;
+int g_show_tray = 1;
 char g_last_error[256] = {0};
 struct Remap * g_remap_list;
 struct Remap * g_remap_parsee = 0;
@@ -272,6 +273,22 @@ int load_config_line(char *line, int linenum)
         }
         log_error(
                 "Config error (line %d): debug must be 0/1/true/false\n",
+                linenum);
+        return 1;
+    }
+
+    // toggle tray visibility
+    if (strcmp(line, "show_tray") == 0) {
+        if (strcmp(after_eq, "1") == 0 || strcasecmp(after_eq, "true")  == 0) {
+            g_show_tray = 1;
+            return 0;
+        }
+        if (strcmp(after_eq, "0") == 0 || strcasecmp(after_eq, "false") == 0) {
+            g_show_tray = 0;
+            return 0;
+        }
+        log_error(
+                "Config error (line %d): show_tray must be 0/1/true/false\n",
                 linenum);
         return 1;
     }

@@ -20,6 +20,7 @@
 #define INJECTED_KEY_ID 0xFFC3CED7
 
 extern struct Remap *g_remap_list;
+extern int g_show_tray;
 HHOOK g_mouse_hook;
 HHOOK g_keyboard_hook;
 
@@ -202,9 +203,11 @@ int main()
         ensure_capslock_off();
     }
 
-    // Initialize tray icon
-    if (!init_tray_icon()) {
-        if (g_debug && can_print()) printf("Failed to create tray icon\n");
+    // Initialize tray icon (if enabled)
+    if (g_show_tray) {
+        if (!init_tray_icon()) {
+            if (g_debug && can_print()) printf("Failed to create tray icon\n");
+        }
     }
 
     MSG msg;
@@ -214,7 +217,9 @@ int main()
         DispatchMessage(&msg);
     }
 
-    cleanup_tray_icon();
+    if (g_show_tray) {
+        cleanup_tray_icon();
+    }
 
 end:
     if (g_last_error[0] != '\0') {
