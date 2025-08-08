@@ -19,7 +19,7 @@
 // from them to avoid collisions.
 #define INJECTED_KEY_ID 0xFFC3CED7
 
-struct Remap * g_remap_list;
+extern struct Remap *g_remap_list;
 HHOOK g_mouse_hook;
 HHOOK g_keyboard_hook;
 
@@ -88,7 +88,7 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
 static void ensure_capslock_off(void) {
     SHORT state = GetKeyState(VK_CAPITAL);
     if (state & 1) {
-        printf("Detected capslock active: toggling it off...\n");
+        log_error("Detected capslock active: toggling it off...\n");
         USHORT scan = (USHORT)MapVirtualKey(VK_CAPITAL, MAPVK_VK_TO_VSC);
         // send injected CapsLock DOWN + UP to clear toggle
         send_input(scan, VK_CAPITAL, DOWN);
@@ -99,11 +99,18 @@ static void ensure_capslock_off(void) {
 
 void create_console()
 {
-    if (GetConsoleWindow() != NULL) return; // Console already exists, nothing to do
+    if (GetConsoleWindow()) return; // Console already exists, nothing to do
 
     if (AllocConsole()) {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
+
+        // Remove the X button so that we don't accidentally close the main app
+        // Console can be closed by toggling debug mode off
+        HWND h = GetConsoleWindow();
+        HMENU sys = GetSystemMenu(h, FALSE);
+        if (sys) DeleteMenu(sys, SC_CLOSE, MF_BYCOMMAND);
+
         printf("== dual-key-remap (version: %s, author: %s) ==\n\n", VERSION, AUTHOR);
     }
 }
@@ -115,13 +122,18 @@ void destroy_console()
     FreeConsole();
 }
 
+int can_print(void)
+{
+    return GetConsoleWindow() != NULL;
+}
+
 int load_config_file(wchar_t * path)
 {
     FILE * file;
     char line[255];
 
     if (_wfopen_s(&file, path, L"r") > 0) {
-        printf("Cannot open configuration file '%ws'. Make sure it is in the same directory as 'dual-key-remap.exe'.\n",
+        log_error("Cannot open configuration file '%ws'. Make sure it is in the same directory as 'dual-key-remap.exe'.\n",
             path);
         return 1;
     }
@@ -148,13 +160,12 @@ void put_config_path(wchar_t * path)
 
 int main()
 {
-    // Initialization may print errors to stdout, create a console to show that output
-    create_console();
+    g_last_error[0] = '\0'; // Clear error buffer
 
     HANDLE mutex = CreateMutex(0, TRUE, "dual-key-remap.single-instance");
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        printf("dual-key-remap.exe is already running!\n");
+        log_error("dual-key-remap.exe is already running!\n");
         goto end;
     }
 
@@ -174,13 +185,13 @@ int main()
     g_keyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_callback, 0, 0);
 
     if (!g_mouse_hook || !g_keyboard_hook) {
-        printf("Failed to set keyboard or mouse hooks, aborting.\n");
+        log_error("Failed to set keyboard or mouse hooks, aborting.\n");
         goto end;
     }
 
     // We're all good if we got this far, hide the console window unless we're debugging
     if (g_debug) {
-        printf("-- DEBUG MODE --\n");
+        if (can_print()) printf("-- DEBUG MODE --\n");
     } else {
         destroy_console();
     }
@@ -193,7 +204,7 @@ int main()
 
     // Initialize tray icon
     if (!init_tray_icon()) {
-        if (g_debug) printf("Failed to create tray icon\n");
+        if (g_debug && can_print()) printf("Failed to create tray icon\n");
     }
 
     MSG msg;
@@ -206,7 +217,11 @@ int main()
     cleanup_tray_icon();
 
 end:
-    printf("Press any key to exit...\n");
-    getchar();
+    if (g_last_error[0] != '\0') {
+        create_console();
+        printf("%s", g_last_error);
+        printf("Press any key to exit...\n");
+        getchar();
+    }
     return 0;
 }

@@ -4,7 +4,8 @@ tests:
 	cl tests.c && .\tests.exe
 
 build:
-	cl .\dual-key-remap.c /link user32.lib shell32.lib /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup
+	rc resources.rc
+	cl .\dual-key-remap.c resources.res /link user32.lib shell32.lib /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup
 
 kill:
 	@taskkill /f /im "dual-key-remap.exe" || echo dual-key-remap is not running

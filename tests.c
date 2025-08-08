@@ -79,6 +79,11 @@ void send_input(int scan,int virt,enum Direction dir){
 void user_input(int scan,int virt,enum Direction dir){
     if(!handle_input(scan,virt,dir,0)) push_out(scan,virt,dir);}
 
+/* Platform abstraction for debug output */
+int can_print(void) {
+    return 1;  /* Always available in tests */
+}
+
 /* DSL */
 #define IN(KEY,DIR)              user_input((KEY)->scan_code,(KEY)->virt_code,DIR)
 #define IN_MANUAL(SCAN,VIRT,DIR) user_input(SCAN,VIRT,DIR)
@@ -142,6 +147,27 @@ int main(void)
     EXPECT(load_config_line("remap_key=ESCAPE",4)==1,"incomplete block");
     reset_config();
     freopen(DEV_TTY, "w", stderr); // Restore stderr
+
+    SECTION("g_last_error set correctly with debug off");
+    g_debug = 0;
+    g_last_error[0] = '\0'; // clear
+    capture_start();
+    EXPECT(load_config_line("invalid_setting=ESCAPE",1)==1,"bad setting returns error");
+    char *no_output = capture_stop();
+    EXPECT(no_output[0] == '\0', "no stdout when debug off");
+    EXPECT(strstr(g_last_error, "invalid setting") != NULL, "error stored in g_last_error");
+    free(no_output);
+
+    SECTION("g_last_error set correctly with debug on");
+    g_debug = 1;
+    g_last_error[0] = '\0'; // clear
+    capture_start();
+    EXPECT(load_config_line("remap_key=BADKEY",5)==1,"bad key returns error");
+    char *with_output = capture_stop();
+    EXPECT(strstr(with_output, "invalid key name") != NULL, "stdout when debug on");
+    EXPECT(strstr(g_last_error, "invalid key name") != NULL, "error also stored in g_last_error");
+    free(with_output);
+    g_debug = 0;
 
     SECTION("Registers remappings from config");
     EXPECT(g_debug==0,"debug default off");

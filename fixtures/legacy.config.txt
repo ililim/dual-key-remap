@@ -1,0 +1,3 @@
+remap_key=CAPSLOCK
+when_alone=ESCAPE
+with_other=CTRL
