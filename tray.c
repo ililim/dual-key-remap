@@ -133,7 +133,8 @@ void show_menu() {
     POINT pos;
     GetCursorPos(&pos);
     SetForegroundWindow(window);
-    TrackPopupMenu(menu, TPM_BOTTOMALIGN | TPM_LEFTALIGN, pos.x, pos.y, 0, window, NULL);
+    TrackPopupMenu(menu, TPM_BOTTOMALIGN | TPM_LEFTALIGN | TPM_RIGHTBUTTON, pos.x, pos.y, 0, window, NULL);
+    PostMessage(window, WM_NULL, 0, 0); // Dismiss menu reliably
 }
 
 LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {

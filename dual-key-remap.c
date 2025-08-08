@@ -60,7 +60,7 @@ LRESULT CALLBACK mouse_callback(int msg_code, WPARAM w_param, LPARAM l_param) {
         }
     }
 
-    return (block_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
+    return (block_input) ? 1 : CallNextHookEx(g_keyboard_hook, msg_code, w_param, l_param);
 }
 
 LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
