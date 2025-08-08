@@ -19,7 +19,7 @@
 // from them to avoid collisions.
 #define INJECTED_KEY_ID 0xFFC3CED7
 
-struct Remap * g_remap_list;
+extern struct Remap *g_remap_list;
 HHOOK g_mouse_hook;
 HHOOK g_keyboard_hook;
 
