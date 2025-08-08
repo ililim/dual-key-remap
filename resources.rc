@@ -1,3 +1,41 @@
 #include "resource.h"
 
+// Icon
 IDI_TRAY_ICON ICON "assets/tray.ico"
+
+// Application manifest (asInvoker, DPI aware, OS compatibility)
+1 RT_MANIFEST "app.manifest"
+
+// Version information
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 0,9,0,0
+ PRODUCTVERSION 0,9,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x00040004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      "ililim\0"
+            VALUE "FileDescription",  "Dual Key Remap\0"
+            VALUE "FileVersion",      "0.9.0\0"
+            VALUE "InternalName",     "dual-key-remap\0"
+            VALUE "OriginalFilename", "dual-key-remap.exe\0"
+            VALUE "ProductName",      "Dual Key Remap\0"
+            VALUE "ProductVersion",   "0.9.0\0"
+            VALUE "LegalCopyright",   "Copyright (c) 2024-2025 ililim\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END
