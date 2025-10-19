@@ -14,6 +14,12 @@
 
 #include "input.h"
 #include "keys.c"
+
+static unsigned long long g_fake_time_ms = 0;
+static unsigned long long fake_time_ms(void) { return g_fake_time_ms; }
+
+extern unsigned long long (*get_time_ms)(void);
+
 #include "remap.c"
 
 #ifdef _WIN32
@@ -135,6 +141,8 @@ char *capture_stop(void)
 /* Tests */
 int main(void)
 {
+    get_time_ms = fake_time_ms;
+
     SECTION("Passthrough keys if no config");
     EMPTY(); IN(ESC,DOWN); IN(SHIFT,DOWN); IN(ESC,UP);
         SEE(ESC,DOWN); SEE(SHIFT,DOWN); SEE(ESC,UP); EMPTY();
@@ -315,6 +323,111 @@ int main(void)
     free(log1);
 
     g_debug = 0;
+
+    // Debug section generates real outputs but doesn't consume them with SEE()
+    // Drain the output queue so subsequent sections start clean
+    clear_out();
+
+    SECTION("with_other: multiple keys down in order, up in reverse");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL+ALT+SHIFT",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN);
+        SEE(CTRL,DOWN); SEE(ALT,DOWN); SEE(SHIFT,DOWN);
+        SEE(ENTER,DOWN);
+    EMPTY();
+    IN(CAPS,UP);
+        SEE(SHIFT,UP); SEE(ALT,UP); SEE(CTRL,UP);
+    EMPTY();
+
+    SECTION("when_alone: combination CTRL+ESCAPE");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=CTRL+ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP);
+        SEE(CTRL,DOWN); SEE(ESC,DOWN); SEE(ESC,UP); SEE(CTRL,UP);
+    EMPTY();
+
+    SECTION("with_other: case-insensitive and whitespace tolerant");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=  ctrl  +  Alt +   shift  ",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN);
+        SEE(CTRL,DOWN); SEE(ALT,DOWN); SEE(SHIFT,DOWN);
+        SEE(ENTER,DOWN);
+    EMPTY();
+    IN(CAPS,UP);
+        SEE(SHIFT,UP); SEE(ALT,UP); SEE(CTRL,UP);
+    EMPTY();
+
+    SECTION("empty value acts as NOOP");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP);   EMPTY();
+
+    SECTION("sequence longer than MAX_SEQ errors");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=F1+F2+F3+F4+F5+F6+F7+F8+F9",0)==1,"too many keys must error");
+
+    SECTION("invalid '++' sequence errors");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL++ALT",0)==1,"empty token must error");
+
+    SECTION("tap_timeout_ms: suppress when_alone if held too long");
+    reset_config();
+    EXPECT(load_config_line("tap_timeout_ms=200",0)==0,"");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 1210;
+    IN(CAPS,UP); EMPTY();
+
+    g_fake_time_ms = 2000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 2150;
+    IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+
+    SECTION("tap_timeout_ms: ignored when used with other key");
+    reset_config();
+    EXPECT(load_config_line("tap_timeout_ms=100",0)==0,"");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL+ALT",0)==0,"");
+
+    g_fake_time_ms = 3000;
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(CTRL,DOWN); SEE(ALT,DOWN); SEE(ENTER,DOWN); EMPTY();
+    g_fake_time_ms = 3700;
+    IN(CAPS,UP); SEE(ALT,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("injected tap output must not trigger with_other");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
 
     #include "test_keys.c"
 
