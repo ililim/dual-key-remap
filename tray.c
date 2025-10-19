@@ -63,7 +63,9 @@ void update_tray(void) {
     update_menu_item(MENU_DEBUG_TOGGLE, g_debug ? MENU_TEXT_DEBUG_STOP : MENU_TEXT_DEBUG_START);
 
     // Notify system tray of changes
-    Shell_NotifyIcon(NIM_MODIFY, &tray_data);
+    if (icon_added) {
+        Shell_NotifyIcon(NIM_MODIFY, &tray_data);
+    }
 }
 
 void open_url(const wchar_t* url) {
@@ -89,9 +91,15 @@ void reveal_config() {
 void reload_config() {
     wchar_t config_path[MAX_PATH];
     put_config_path(config_path);
-    create_console(); // load_config_file can print, so ensure console is available
+    create_console();
+
+    // Pause hooks and wait for in-flight callbacks to prevent race on g_remap_list
+    g_paused = 1;
+    Sleep(50);
     reset_config();
     int error = load_config_file(config_path);
+    g_paused = 0;
+
     if (error) {
         MessageBox(NULL, "Failed to reload config file", "dual-key-remap config error", MB_ICONERROR);
     } else if (g_debug) {

@@ -61,7 +61,7 @@ LRESULT CALLBACK mouse_callback(int msg_code, WPARAM w_param, LPARAM l_param) {
         }
     }
 
-    return (block_input) ? 1 : CallNextHookEx(g_keyboard_hook, msg_code, w_param, l_param);
+    return (block_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
 }
 
 LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
@@ -83,7 +83,7 @@ LRESULT CALLBACK keyboard_callback(int msg_code, WPARAM w_param, LPARAM l_param)
         );
     }
 
-    return (block_input) ? 1 : CallNextHookEx(g_mouse_hook, msg_code, w_param, l_param);
+    return (block_input) ? 1 : CallNextHookEx(g_keyboard_hook, msg_code, w_param, l_param);
 }
 
 static void ensure_capslock_off(void) {
@@ -154,7 +154,8 @@ void put_config_path(wchar_t * path)
 {
     HMODULE module = GetModuleHandleW(0);
     GetModuleFileNameW(module, path, MAX_PATH);
-    path[wcslen(path) - strlen("dual-key-remap.exe")] = '\0';
+    wchar_t *slash = wcsrchr(path, L'\\');
+    if (slash) slash[1] = L'\0';
     wcscat(path, L"config.txt");
 }
 
@@ -222,6 +223,10 @@ int main()
     }
 
 end:
+    if (g_keyboard_hook) UnhookWindowsHookEx(g_keyboard_hook);
+    if (g_mouse_hook) UnhookWindowsHookEx(g_mouse_hook);
+    if (mutex) CloseHandle(mutex);
+
     if (g_last_error[0] != '\0') {
         create_console();
         printf("%s", g_last_error);
