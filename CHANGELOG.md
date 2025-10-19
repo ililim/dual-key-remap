@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 ## 0.10
 ### Added
 - Multi-key sequences: `when_alone` and `with_other` now support multiple keys separated by `+` (e.g., `with_other=CTRL+ALT+SHIFT` or `when_alone=CTRL+ESC`). Supports up to 8 keys per sequence.
-- Tap timeout: global `tap_timeout_ms` setting suppresses `when_alone` action if key held longer than specified milliseconds (e.g., `tap_timeout_ms=500`). Set to 0 to disable (default).
+- Tap timeout: global `timeout_ms` setting suppresses `when_alone` action if key held longer than specified milliseconds (e.g., `timeout_ms=500`). Set to 0 to disable (default).
 
 ### Fixed
 - Tray icon now retries up to 3 times (60 second intervals) if it fails to load on startup, fixing issues when launching during early boot before Explorer's system tray is ready.

@@ -10,7 +10,7 @@
 #   define strcasecmp _stricmp
 #endif
 
-// Time abstraction (overridable for tests)
+// Time (overridable for tests)
 // --------------------------------------
 
 #ifdef _WIN32
@@ -50,7 +50,7 @@ struct Remap
     int with_other_count;
 
     unsigned long long key_down_time;
-    int timeout;
+    int timeout_ms;
 
     enum State state;
 
@@ -63,7 +63,7 @@ struct Remap
 int g_paused = 0;
 int g_debug = 0;
 int g_show_tray = 1;
-int g_tap_timeout_ms = 0;
+int g_timeout_ms = 0;
 char g_last_error[256] = {0};
 struct Remap * g_remap_list;
 struct Remap * g_remap_parsee = 0;
@@ -125,15 +125,6 @@ void log_handle_input_end(int scan_code, int virt_code, int dir, int is_injected
     }
 }
 
-void log_send_input(char * remap_name, KEY_DEF * key, int dir)
-{
-    print_log_prefix();
-    log_info("(sending:%s) %s %s",
-        remap_name,
-        key ? key->name : "???",
-        fmt_dir(dir));
-}
-
 // Remapping
 // -------------------------------------
 
@@ -144,6 +135,7 @@ struct Remap * new_remap(KEY_DEF * from)
     remap->state = IDLE;
     remap->when_alone_count = -1;
     remap->with_other_count = -1;
+    remap->timeout_ms = -1;
     return remap;
 }
 
@@ -168,12 +160,6 @@ struct Remap * find_remap_for_virt_code(int virt_code)
         remap = remap->next;
     }
     return 0;
-}
-
-void send_key_def_input(char * input_name, KEY_DEF * key_def, enum Direction dir)
-{
-    log_send_input(input_name, key_def, dir);
-    send_input(key_def->scan_code, key_def->virt_code, dir);
 }
 
 static void send_sequence(const char *name, KEY_DEF **keys, int count, enum Direction dir)
@@ -253,9 +239,10 @@ int event_remapped_key_up(struct Remap * remap)
         send_sequence("with_other", remap->with_other_keys, remap->with_other_count, UP);
     } else {
         int send_alone = 1;
-        int timeout_ms = remap->timeout ? remap->timeout : g_tap_timeout_ms;
+        unsigned long long elapsed = 0;
+        int timeout_ms = (remap->timeout_ms >= 0) ? remap->timeout_ms : g_timeout_ms;
         if (timeout_ms > 0 && remap->key_down_time) {
-            unsigned long long elapsed = get_time_ms() - remap->key_down_time;
+            elapsed = get_time_ms() - remap->key_down_time;
             if (elapsed > (unsigned long long)timeout_ms) send_alone = 0;
         }
         remap->key_down_time = 0;
@@ -264,6 +251,11 @@ int event_remapped_key_up(struct Remap * remap)
         if (send_alone) {
             send_sequence("when_alone", remap->when_alone_keys, remap->when_alone_count, DOWN);
             send_sequence("when_alone", remap->when_alone_keys, remap->when_alone_count, UP);
+        } else if (timeout_ms > 0 && elapsed > 0) {
+            if (g_debug && can_print()) {
+                print_log_prefix();
+                log_info("(suppressed:when_alone) held %llums > %dms", elapsed, timeout_ms);
+            }
         }
     }
     return 1;
@@ -308,6 +300,21 @@ int handle_input(int scan_code, int virt_code, int direction, int is_injected)
     }
     log_handle_input_end(scan_code, virt_code, direction, is_injected, block_input);
     return block_input;
+}
+
+void cleanup_held_keys()
+{
+    int prev = g_paused;
+    g_paused = 1;
+    struct Remap * remap = g_remap_list;
+    while (remap) {
+        if (remap->state == HELD_DOWN_WITH_OTHER && remap->with_other_count > 0) {
+            send_sequence("with_other", remap->with_other_keys, remap->with_other_count, UP);
+            remap->state = IDLE;
+        }
+        remap = remap->next;
+    }
+    g_paused = prev;
 }
 
 // Config
@@ -392,13 +399,18 @@ int load_config_line(char *line, int linenum)
     }
 
     // tap timeout
-    if (strcmp(line, "tap_timeout_ms") == 0) {
-        g_tap_timeout_ms = atoi(after_eq);
-        if (g_tap_timeout_ms < 0) {
+    if (strcmp(line, "timeout_ms") == 0) {
+        int value = atoi(after_eq);
+        if (value < 0) {
             log_error(
-                    "Config error (line %d): tap_timeout_ms must be >= 0\n",
+                    "Config error (line %d): timeout_ms must be >= 0\n",
                     linenum);
             return 1;
+        }
+        if (g_remap_parsee && (g_remap_parsee->from || g_remap_parsee->when_alone_count >= 0 || g_remap_parsee->with_other_count >= 0)) {
+            g_remap_parsee->timeout_ms = value;
+        } else {
+            g_timeout_ms = value;
         }
         return 0;
     }
@@ -476,5 +488,5 @@ void reset_config()
         free(remap);
     }
     g_remap_list = 0;
-    g_tap_timeout_ms = 0;
+    g_timeout_ms = 0;
 }

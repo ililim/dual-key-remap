@@ -58,7 +58,7 @@ Supports up to 8 keys per sequence. Case-insensitive (both `CTRL+ALT` and `ctrl+
 Suppress the `when_alone` action if a key is held too long. Useful to avoid accidental triggers:
 
 ```
-tap_timeout_ms=500
+timeout_ms=500
 remap_key=CAPSLOCK
 when_alone=ESCAPE
 with_other=CTRL
