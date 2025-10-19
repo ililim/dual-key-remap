@@ -10,24 +10,6 @@
 #   define strcasecmp _stricmp
 #endif
 
-// Time (overridable for tests)
-// --------------------------------------
-
-#ifdef _WIN32
-static unsigned long long get_tick_count_ms(void) {
-    return GetTickCount64();
-}
-#else
-#include <time.h>
-static unsigned long long get_tick_count_ms(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (unsigned long long)ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000ULL;
-}
-#endif
-
-unsigned long long (*get_time_ms)(void) = get_tick_count_ms;
-
 // Types
 // --------------------------------------
 
@@ -67,6 +49,24 @@ int g_timeout_ms = 0;
 char g_last_error[256] = {0};
 struct Remap * g_remap_list;
 struct Remap * g_remap_parsee = 0;
+
+// Time
+// --------------------------------------
+
+#ifdef _WIN32
+static unsigned long long get_tick_count_ms(void) {
+    return GetTickCount64();
+}
+#else
+#include <time.h>
+static unsigned long long get_tick_count_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (unsigned long long)ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000ULL;
+}
+#endif
+
+unsigned long long (*get_time_ms)(void) = get_tick_count_ms; // overrideable for testing
 
 // Debug Logging
 // --------------------------------------
