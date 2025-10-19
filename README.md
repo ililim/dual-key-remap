@@ -51,8 +51,6 @@ when_alone=CTRL+ESC
 with_other=CTRL
 ```
 
-Supports up to 8 keys per sequence. Case-insensitive (both `CTRL+ALT` and `ctrl+alt` work).
-
 ### Tap Timeout
 
 Suppress the `when_alone` action if a key is held too long. Useful to avoid accidental triggers:
@@ -64,7 +62,9 @@ when_alone=ESCAPE
 with_other=CTRL
 ```
 
-If you hold CapsLock for more than 500ms without pressing another key, releasing it will send nothing (instead of Escape). Set to `0` to disable (default).
+If you hold CapsLock for more than 500ms without pressing another key, releasing it will send nothing (instead of Escape).
+
+The `timeout_ms` setting can be configured globally (affects all remaps) or per-key. When set before any `remap_key`, it sets the global default. When set after `remap_key` but before the next one, it applies only to that specific key.
 
 ## Tips and Tricks
 

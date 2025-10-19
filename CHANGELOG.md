@@ -4,14 +4,12 @@ All notable changes to this project will be documented in this file.
 ## 0.10
 ### Added
 - Multi-key sequences: `when_alone` and `with_other` now support multiple keys separated by `+` (e.g., `with_other=CTRL+ALT+SHIFT` or `when_alone=CTRL+ESC`). Supports up to 8 keys per sequence.
-- Tap timeout: global `timeout_ms` setting suppresses `when_alone` action if key held longer than specified milliseconds (e.g., `timeout_ms=500`). Set to 0 to disable (default).
+- Tap timeout: global `timeout_ms` setting suppresses `when_alone` action if key held longer than specified milliseconds (e.g., `timeout_ms=500`).
 
 ### Fixed
 - Tray icon now retries up to 3 times (60 second intervals) if it fails to load on startup, fixing issues when launching during early boot before Explorer's system tray is ready.
-- Fixed mouse and keyboard hook callbacks using wrong hook handles in CallNextHookEx.
-- Added proper cleanup of hooks and mutex on exit.
-- Fixed config reload race condition that could crash when hooks access remap list during reset.
 - Made config path detection robust to work regardless of exe name.
+- Improved stability and robustness (fixed hook callbacks, cleanup on exit, and config reload race conditions).
 
 ## 0.9
 ### Added
