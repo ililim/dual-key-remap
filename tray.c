@@ -6,6 +6,9 @@
 // Tray icon constants
 #define WM_TRAY_ICON_MESSAGE (WM_USER + 1)
 #define TRAY_ICON_ID 1001
+#define TRAY_RETRY_TIMER_ID 1002
+#define TRAY_RETRY_INTERVAL 60000  // 60 seconds
+#define TRAY_MAX_RETRIES 3
 
 // Menu command IDs
 #define MENU_PAUSE_RESUME    2001
@@ -34,6 +37,8 @@ static NOTIFYICONDATA tray_data = {0};
 static HMENU menu = NULL;
 static HWND window = NULL;
 static UINT taskbar_restart_msg = 0;
+static int retry_count = 0;
+static int icon_added = 0;
 
 // External functions and globals we'll use
 extern void put_config_path(wchar_t * path);
@@ -129,6 +134,14 @@ void create_menu() {
     AppendMenu(menu, MF_STRING, MENU_QUIT, "Exit");
 }
 
+int try_add_tray_icon() {
+    if (Shell_NotifyIcon(NIM_ADD, &tray_data)) {
+        icon_added = 1;
+        return 1;
+    }
+    return 0;
+}
+
 void show_menu() {
     POINT pos;
     GetCursorPos(&pos);
@@ -157,11 +170,25 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpar
             }
             break;
 
+        case WM_TIMER:
+            if (wparam == TRAY_RETRY_TIMER_ID) {
+                retry_count++;
+
+                if (try_add_tray_icon()) {
+                    KillTimer(window, TRAY_RETRY_TIMER_ID);
+                } else if (retry_count >= TRAY_MAX_RETRIES) {
+                    KillTimer(window, TRAY_RETRY_TIMER_ID);
+                }
+                return 0;
+            }
+            break;
+
         default:
             // Handle taskbar recreation (when Explorer.exe restarts)
             if (message == taskbar_restart_msg) {
                 // Re-add our tray icon since the taskbar was recreated
-                Shell_NotifyIcon(NIM_ADD, &tray_data);
+                icon_added = 0;
+                try_add_tray_icon();
                 return 0;
             }
             return DefWindowProc(hwnd, message, wparam, lparam);
@@ -218,15 +245,28 @@ int init_tray_icon() {
     strcpy(tray_data.szTip, "dual-key-remap");
 
     // Add to system tray
-    if (!Shell_NotifyIcon(NIM_ADD, &tray_data)) {
-        return 0;
+    if (!try_add_tray_icon()) {
+        // Failed to add icon immediately, schedule retries
+        // This can happen during early boot when Explorer's system tray isn't ready yet
+        retry_count = 0;
+        SetTimer(window, TRAY_RETRY_TIMER_ID, TRAY_RETRY_INTERVAL, NULL);
     }
 
+    // Return success even if icon not added yet - we'll retry via timer
     return 1;
 }
 
 void cleanup_tray_icon() {
-    Shell_NotifyIcon(NIM_DELETE, &tray_data);
+    // Kill retry timer if it's still running
+    if (window) {
+        KillTimer(window, TRAY_RETRY_TIMER_ID);
+    }
+
+    // Only delete icon if it was successfully added
+    if (icon_added) {
+        Shell_NotifyIcon(NIM_DELETE, &tray_data);
+    }
+
     if (menu) {
         DestroyMenu(menu);
     }

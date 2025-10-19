@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.10
+### Added
+-
+
+### Fixed
+- Tray icon now retries up to 3 times (60 second intervals) if it fails to load on startup, fixing issues when launching during early boot before Explorer's system tray is ready.
+
 ## 0.9
 ### Added
 - Added a tray icon: you can now pause/reload/exit dual-key-remap from the tray icon.
