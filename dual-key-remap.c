@@ -1,4 +1,4 @@
-#define VERSION "0.9"
+#define VERSION "0.10"
 #define AUTHOR "ililim"
 
 #include <windows.h>
@@ -21,6 +21,7 @@
 
 extern struct Remap *g_remap_list;
 extern int g_show_tray;
+extern void cleanup_held_keys();
 HHOOK g_mouse_hook;
 HHOOK g_keyboard_hook;
 
@@ -198,7 +199,6 @@ int main()
         destroy_console();
     }
 
-
     // If we're remapping capslock, clear its state so we won't start stuck on
     if (find_remap_for_virt_code(VK_CAPITAL)) {
         ensure_capslock_off();
@@ -218,11 +218,9 @@ int main()
         DispatchMessage(&msg);
     }
 
-    if (g_show_tray) {
-        cleanup_tray_icon();
-    }
-
 end:
+    cleanup_held_keys();
+    if (g_show_tray) cleanup_tray_icon();
     if (g_keyboard_hook) UnhookWindowsHookEx(g_keyboard_hook);
     if (g_mouse_hook) UnhookWindowsHookEx(g_mouse_hook);
     if (mutex) CloseHandle(mutex);

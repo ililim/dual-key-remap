@@ -390,9 +390,9 @@ int main(void)
     EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
     EXPECT(load_config_line("with_other=CTRL++ALT",0)==1,"empty token must error");
 
-    SECTION("tap_timeout_ms: suppress when_alone if held too long");
+    SECTION("timeout_ms: suppress when_alone if held too long");
     reset_config();
-    EXPECT(load_config_line("tap_timeout_ms=200",0)==0,"");
+    EXPECT(load_config_line("timeout_ms=200",0)==0,"");
     EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
     EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
     EXPECT(load_config_line("with_other=CTRL",0)==0,"");
@@ -407,9 +407,9 @@ int main(void)
     g_fake_time_ms = 2150;
     IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
 
-    SECTION("tap_timeout_ms: ignored when used with other key");
+    SECTION("timeout_ms: ignored when used with other key");
     reset_config();
-    EXPECT(load_config_line("tap_timeout_ms=100",0)==0,"");
+    EXPECT(load_config_line("timeout_ms=100",0)==0,"");
     EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
     EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
     EXPECT(load_config_line("with_other=CTRL+ALT",0)==0,"");
@@ -428,6 +428,84 @@ int main(void)
 
     IN(CAPS,DOWN); EMPTY();
     IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+
+    SECTION("with_other: multi-key sequence with MOUSE input");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL+ALT",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN_MANUAL(0, MOUSE_DUMMY_VK, DOWN);
+        SEE(CTRL,DOWN); SEE(ALT,DOWN); SEE(MOUSE,DOWN);
+    EMPTY();
+    IN(CAPS,UP);
+        SEE(ALT,UP); SEE(CTRL,UP);
+    EMPTY();
+
+    SECTION("with_other: duplicate keys are kept (current behavior)");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL+CTRL+ALT",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN);
+        SEE(CTRL,DOWN); SEE(CTRL,DOWN); SEE(ALT,DOWN);
+        SEE(ENTER,DOWN);
+    EMPTY();
+    IN(CAPS,UP);
+        SEE(ALT,UP); SEE(CTRL,UP); SEE(CTRL,UP);
+    EMPTY();
+
+    SECTION("Two remaps: single + multi with deterministic order");
+    reset_config();
+    EXPECT(load_config_line("remap_key=TAB",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=ALT+SHIFT",0)==0,"");
+
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(TAB,DOWN); IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN);
+        SEE(ALT,DOWN); SEE(SHIFT,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN);
+    EMPTY();
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+    IN(TAB,UP);  SEE(SHIFT,UP); SEE(ALT,UP); EMPTY();
+
+    SECTION("with_other can include the remapped key itself (no recursion)");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL+CAPSLOCK",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN);
+        SEE(CTRL,DOWN); SEE(CAPS,DOWN); SEE(ENTER,DOWN);
+    EMPTY();
+    IN(CAPS,UP);
+        SEE(CAPS,UP); SEE(CTRL,UP);
+    EMPTY();
+
+    SECTION("timeout_ms with MOUSE as 'other'");
+    reset_config();
+    EXPECT(load_config_line("timeout_ms=100",0)==0,"");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL+ALT",0)==0,"");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 1150;
+    IN_MANUAL(0, MOUSE_DUMMY_VK, DOWN);
+        SEE(CTRL,DOWN); SEE(ALT,DOWN); SEE(MOUSE,DOWN);
+    EMPTY();
+    g_fake_time_ms = 1400;
+    IN(CAPS,UP);
+        SEE(ALT,UP); SEE(CTRL,UP);
+    EMPTY();
 
     #include "test_keys.c"
 
