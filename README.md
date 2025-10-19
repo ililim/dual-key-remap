@@ -30,6 +30,42 @@ To uninstall, terminate the script from the task manager and remove the startup 
 
 With the default configuration Dual Key Remap will remap CapsLock to Escape when pressed alone and Ctrl when pressed with other keys. To change this simply edit config.txt and adjust the key values. You can refer to keys by their names as described in the [wiki](https://github.com/ililim/dual-key-remap/wiki/Using-config.txt#key-names).
 
+### Multi-key Sequences
+
+You can send multiple keys by separating them with `+`. For example:
+
+```
+# Hyper key: RIGHT_WIN as Ctrl+Alt+Shift modifier, no action when tapped
+remap_key=RIGHT_WIN
+when_alone=NOOP
+with_other=CTRL+ALT+SHIFT
+
+# CapsLock to Escape when tapped, Ctrl+Alt+Shift when held
+remap_key=CAPSLOCK
+when_alone=ESCAPE
+with_other=CTRL+ALT+SHIFT
+
+# Open Start Menu with Ctrl+Escape
+remap_key=CAPSLOCK
+when_alone=CTRL+ESC
+with_other=CTRL
+```
+
+Supports up to 8 keys per sequence. Case-insensitive (both `CTRL+ALT` and `ctrl+alt` work).
+
+### Tap Timeout
+
+Suppress the `when_alone` action if a key is held too long. Useful to avoid accidental triggers:
+
+```
+tap_timeout_ms=500
+remap_key=CAPSLOCK
+when_alone=ESCAPE
+with_other=CTRL
+```
+
+If you hold CapsLock for more than 500ms without pressing another key, releasing it will send nothing (instead of Escape). Set to `0` to disable (default).
+
 ## Tips and Tricks
 
 Below are a few optional advanced tips for configuring your system and using Dual Key Remap. They assume you are using it to rebind CapsLock to Ctrl/Escape, but if you are rebinding other keys they might still be helpful to you.
