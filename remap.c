@@ -10,8 +10,28 @@
 #   define strcasecmp _stricmp
 #endif
 
+// Time abstraction (overridable for tests)
+// --------------------------------------
+
+#ifdef _WIN32
+static unsigned long long get_tick_count_ms(void) {
+    return GetTickCount64();
+}
+#else
+#include <time.h>
+static unsigned long long get_tick_count_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (unsigned long long)ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000ULL;
+}
+#endif
+
+unsigned long long (*get_time_ms)(void) = get_tick_count_ms;
+
 // Types
 // --------------------------------------
+
+#define MAX_SEQ 8
 
 enum State {
     IDLE,
@@ -22,8 +42,15 @@ enum State {
 struct Remap
 {
     KEY_DEF * from;
-    KEY_DEF * to_when_alone;
-    KEY_DEF * to_with_other;
+
+    KEY_DEF * when_alone_keys[MAX_SEQ];
+    int when_alone_count;
+
+    KEY_DEF * with_other_keys[MAX_SEQ];
+    int with_other_count;
+
+    unsigned long long key_down_time;
+    int timeout;
 
     enum State state;
 
@@ -36,6 +63,7 @@ struct Remap
 int g_paused = 0;
 int g_debug = 0;
 int g_show_tray = 1;
+int g_tap_timeout_ms = 0;
 char g_last_error[256] = {0};
 struct Remap * g_remap_list;
 struct Remap * g_remap_parsee = 0;
@@ -109,14 +137,13 @@ void log_send_input(char * remap_name, KEY_DEF * key, int dir)
 // Remapping
 // -------------------------------------
 
-struct Remap * new_remap(KEY_DEF * from, KEY_DEF * to_when_alone, KEY_DEF * to_with_other)
+struct Remap * new_remap(KEY_DEF * from)
 {
-    struct Remap * remap = malloc(sizeof(struct Remap));
+    struct Remap * remap = calloc(1, sizeof(struct Remap));
     remap->from = from;
-    remap->to_when_alone = to_when_alone;
-    remap->to_with_other = to_with_other;
     remap->state = IDLE;
-    remap->next = 0;
+    remap->when_alone_count = -1;
+    remap->with_other_count = -1;
     return remap;
 }
 
@@ -149,11 +176,71 @@ void send_key_def_input(char * input_name, KEY_DEF * key_def, enum Direction dir
     send_input(key_def->scan_code, key_def->virt_code, dir);
 }
 
+static void send_sequence(const char *name, KEY_DEF **keys, int count, enum Direction dir)
+{
+    if (count <= 0) return;
+
+    if (g_debug && can_print()) {
+        print_log_prefix();
+        log_info("(sending:%s) ", name);
+        for (int i = 0; i < count; ++i) {
+            log_info("%s", keys[i]->name);
+            if (i+1 < count) log_info("+");
+        }
+        log_info(" %s", fmt_dir(dir));
+    }
+
+    if (dir == DOWN) {
+        for (int i = 0; i < count; ++i)
+            send_input(keys[i]->scan_code, keys[i]->virt_code, DOWN);
+    } else {
+        for (int i = count - 1; i >= 0; --i)
+            send_input(keys[i]->scan_code, keys[i]->virt_code, UP);
+    }
+}
+
+static int parse_key_sequence(char *value, KEY_DEF **out)
+{
+    while (*value && isspace((unsigned char)*value)) ++value;
+    if (*value == '\0') return 0;
+    if (strcasecmp(value, "NOOP") == 0) return 0;
+
+    int count = 0;
+    char *p = value;
+    while (*p) {
+        while (isspace((unsigned char)*p)) ++p;
+        char *start = p;
+
+        while (*p && *p != '+') ++p;
+
+        char saved = *p;
+        *p = '\0';
+
+        size_t len = strlen(start);
+        while (len > 0 && isspace((unsigned char)start[len-1])) start[--len] = '\0';
+
+        if (len > 0) {
+            for (char *c = start; *c; c++) *c = toupper((unsigned char)*c);
+            KEY_DEF *k = find_key_def_by_name(start);
+            if (!k) return -1;
+            if (count >= MAX_SEQ) return -1;
+            out[count++] = k;
+        } else {
+            return -1;
+        }
+
+        if (saved == '\0') break;
+        *p++ = saved;
+    }
+    return count;
+}
+
 /* @return block_input */
 int event_remapped_key_down(struct Remap * remap)
 {
     if (remap->state == IDLE) {
         remap->state = HELD_DOWN_ALONE;
+        remap->key_down_time = get_time_ms();
     }
     return 1;
 }
@@ -163,11 +250,21 @@ int event_remapped_key_up(struct Remap * remap)
 {
     if (remap->state == HELD_DOWN_WITH_OTHER) {
         remap->state = IDLE;
-        send_key_def_input("with_other", remap->to_with_other, UP);
+        send_sequence("with_other", remap->with_other_keys, remap->with_other_count, UP);
     } else {
+        int send_alone = 1;
+        int timeout_ms = remap->timeout ? remap->timeout : g_tap_timeout_ms;
+        if (timeout_ms > 0 && remap->key_down_time) {
+            unsigned long long elapsed = get_time_ms() - remap->key_down_time;
+            if (elapsed > (unsigned long long)timeout_ms) send_alone = 0;
+        }
+        remap->key_down_time = 0;
         remap->state = IDLE;
-        send_key_def_input("when_alone", remap->to_when_alone, DOWN);
-        send_key_def_input("when_alone", remap->to_when_alone, UP);
+
+        if (send_alone) {
+            send_sequence("when_alone", remap->when_alone_keys, remap->when_alone_count, DOWN);
+            send_sequence("when_alone", remap->when_alone_keys, remap->when_alone_count, UP);
+        }
     }
     return 1;
 }
@@ -179,7 +276,8 @@ int event_other_input()
     while(remap) {
         if (remap->state == HELD_DOWN_ALONE) {
             remap->state = HELD_DOWN_WITH_OTHER;
-            send_key_def_input("with_other", remap->to_with_other, DOWN);
+            remap->key_down_time = 0;
+            send_sequence("with_other", remap->with_other_keys, remap->with_other_count, DOWN);
         }
         remap = remap->next;
     }
@@ -224,8 +322,8 @@ int parsee_is_valid()
 {
     return g_remap_parsee &&
         g_remap_parsee->from &&
-        g_remap_parsee->to_when_alone &&
-        g_remap_parsee->to_with_other;
+        (g_remap_parsee->when_alone_count >= 0) &&
+        (g_remap_parsee->with_other_count >= 0);
 }
 
 /* @return error */
@@ -293,6 +391,18 @@ int load_config_line(char *line, int linenum)
         return 1;
     }
 
+    // tap timeout
+    if (strcmp(line, "tap_timeout_ms") == 0) {
+        g_tap_timeout_ms = atoi(after_eq);
+        if (g_tap_timeout_ms < 0) {
+            log_error(
+                    "Config error (line %d): tap_timeout_ms must be >= 0\n",
+                    linenum);
+            return 1;
+        }
+        return 0;
+    }
+
     // remap directives
     int field = 0;                  // 1 = remap_key, 2 = when_alone, 3 = with_other
     if      (strcmp(line, "remap_key")  == 0) field = 1;
@@ -300,20 +410,9 @@ int load_config_line(char *line, int linenum)
     else if (strcmp(line, "with_other") == 0) field = 3;
 
     if (field) {
-        KEY_DEF *key_def = find_key_def_by_name(after_eq);
-        if (!key_def) {
-            log_error(
-                    "Config error (line %d): invalid key name '%s'\n"
-                    "See the online docs for the latest list of key names.\n",
-                    linenum, after_eq);
-            return 1;
-        }
-
-        // allocate the working remap if this is the first line of a block
         if (!g_remap_parsee)
-            g_remap_parsee = new_remap(0, 0, 0);
+            g_remap_parsee = new_remap(0);
 
-        // fill the appropriate field & catch duplicate remap_key
         if (field == 1) {
             if (g_remap_parsee->from && !parsee_is_valid()) {
                 log_error(
@@ -323,14 +422,37 @@ int load_config_line(char *line, int linenum)
                         linenum);
                 return 1;
             }
+            KEY_DEF *key_def = find_key_def_by_name(after_eq);
+            if (!key_def) {
+                log_error(
+                        "Config error (line %d): invalid key name '%s'\n"
+                        "See the online docs for the latest list of key names.\n",
+                        linenum, after_eq);
+                return 1;
+            }
             g_remap_parsee->from = key_def;
-        } else if (field == 2) { // when_alone=
-            g_remap_parsee->to_when_alone = key_def;
-        } else { // with_other=
-            g_remap_parsee->to_with_other = key_def;
+        } else if (field == 2) {
+            int count = parse_key_sequence(after_eq, g_remap_parsee->when_alone_keys);
+            if (count < 0) {
+                log_error(
+                        "Config error (line %d): invalid key sequence '%s'\n"
+                        "See the online docs for the latest list of key names.\n",
+                        linenum, after_eq);
+                return 1;
+            }
+            g_remap_parsee->when_alone_count = count;
+        } else {
+            int count = parse_key_sequence(after_eq, g_remap_parsee->with_other_keys);
+            if (count < 0) {
+                log_error(
+                        "Config error (line %d): invalid key sequence '%s'\n"
+                        "See the online docs for the latest list of key names.\n",
+                        linenum, after_eq);
+                return 1;
+            }
+            g_remap_parsee->with_other_count = count;
         }
 
-        // commit when block is complete
         if (parsee_is_valid()) {
             register_remap(g_remap_parsee);
             g_remap_parsee = 0;
@@ -354,4 +476,5 @@ void reset_config()
         free(remap);
     }
     g_remap_list = 0;
+    g_tap_timeout_ms = 0;
 }
