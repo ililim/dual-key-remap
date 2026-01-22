@@ -19,11 +19,15 @@ enum State {
     HELD_DOWN_WITH_OTHER,
 };
 
+#define MAX_KEYS 16
+
 struct Remap
 {
     KEY_DEF * from;
-    KEY_DEF * to_when_alone;
-    KEY_DEF * to_with_other;
+    KEY_DEF * to_when_alone[MAX_KEYS];
+    int to_when_alone_count;
+    KEY_DEF * to_with_other[MAX_KEYS];
+    int to_with_other_count;
 
     enum State state;
 
@@ -113,8 +117,27 @@ struct Remap * new_remap(KEY_DEF * from, KEY_DEF * to_when_alone, KEY_DEF * to_w
 {
     struct Remap * remap = malloc(sizeof(struct Remap));
     remap->from = from;
-    remap->to_when_alone = to_when_alone;
-    remap->to_with_other = to_with_other;
+    remap->to_when_alone[0] = to_when_alone;
+    remap->to_when_alone_count = 1;
+    remap->to_with_other[0] = to_with_other;
+    remap->to_with_other_count = 1;
+    remap->state = IDLE;
+    remap->next = 0;
+    return remap;
+}
+
+struct Remap * new_remap_multi(KEY_DEF * from, KEY_DEF ** to_when_alone, int when_alone_count, KEY_DEF ** to_with_other, int with_other_count)
+{
+    struct Remap * remap = malloc(sizeof(struct Remap));
+    remap->from = from;
+    remap->to_when_alone_count = when_alone_count < MAX_KEYS ? when_alone_count : MAX_KEYS;
+    remap->to_with_other_count = with_other_count < MAX_KEYS ? with_other_count : MAX_KEYS;
+    for (int i = 0; i < remap->to_when_alone_count; i++) {
+        remap->to_when_alone[i] = to_when_alone[i];
+    }
+    for (int i = 0; i < remap->to_with_other_count; i++) {
+        remap->to_with_other[i] = to_with_other[i];
+    }
     remap->state = IDLE;
     remap->next = 0;
     return remap;
@@ -149,6 +172,14 @@ void send_key_def_input(char * input_name, KEY_DEF * key_def, enum Direction dir
     send_input(key_def->scan_code, key_def->virt_code, dir);
 }
 
+void send_multi_key_def_input(char * input_name, KEY_DEF ** key_defs, int count, enum Direction dir)
+{
+    for (int i = 0; i < count; i++) {
+        log_send_input(input_name, key_defs[i], dir);
+        send_input(key_defs[i]->scan_code, key_defs[i]->virt_code, dir);
+    }
+}
+
 /* @return block_input */
 int event_remapped_key_down(struct Remap * remap)
 {
@@ -163,11 +194,13 @@ int event_remapped_key_up(struct Remap * remap)
 {
     if (remap->state == HELD_DOWN_WITH_OTHER) {
         remap->state = IDLE;
-        send_key_def_input("with_other", remap->to_with_other, UP);
+        send_multi_key_def_input("with_other", remap->to_with_other, remap->to_with_other_count, UP);
     } else {
         remap->state = IDLE;
-        send_key_def_input("when_alone", remap->to_when_alone, DOWN);
-        send_key_def_input("when_alone", remap->to_when_alone, UP);
+        for (int i = 0; i < remap->to_when_alone_count; i++) {
+            send_key_def_input("when_alone", remap->to_when_alone[i], DOWN);
+            send_key_def_input("when_alone", remap->to_when_alone[i], UP);
+        }
     }
     return 1;
 }
@@ -179,7 +212,7 @@ int event_other_input()
     while(remap) {
         if (remap->state == HELD_DOWN_ALONE) {
             remap->state = HELD_DOWN_WITH_OTHER;
-            send_key_def_input("with_other", remap->to_with_other, DOWN);
+            send_multi_key_def_input("with_other", remap->to_with_other, remap->to_with_other_count, DOWN);
         }
         remap = remap->next;
     }
@@ -224,8 +257,44 @@ int parsee_is_valid()
 {
     return g_remap_parsee &&
         g_remap_parsee->from &&
-        g_remap_parsee->to_when_alone &&
-        g_remap_parsee->to_with_other;
+        g_remap_parsee->to_when_alone_count > 0 &&
+        g_remap_parsee->to_with_other_count > 0;
+}
+
+int parse_key_list(char * value, KEY_DEF ** keys_out, int * count_out, int linenum)
+{
+    *count_out = 0;
+    char buf[512];
+    if (strlen(value) >= sizeof(buf)) {
+        log_error("Config error (line %d): value too long\n", linenum);
+        return 1;
+    }
+    strcpy(buf, value);
+    
+    char * token = strtok(buf, ",");
+    while (token && *count_out < MAX_KEYS) {
+        while (isspace((unsigned char)*token)) token++;
+        char * end = token + strlen(token) - 1;
+        while (end > token && isspace((unsigned char)*end)) *end-- = '\0';
+        
+        KEY_DEF * key_def = find_key_def_by_name(token);
+        if (!key_def) {
+            log_error(
+                    "Config error (line %d): invalid key name '%s'\n"
+                    "See the online docs for the latest list of key names.\n",
+                    linenum, token);
+            return 1;
+        }
+        keys_out[(*count_out)++] = key_def;
+        token = strtok(NULL, ",");
+    }
+    
+    if (*count_out == 0) {
+        log_error("Config error (line %d): no keys specified\n", linenum);
+        return 1;
+    }
+    
+    return 0;
 }
 
 /* @return error */
@@ -300,18 +369,11 @@ int load_config_line(char *line, int linenum)
     else if (strcmp(line, "with_other") == 0) field = 3;
 
     if (field) {
-        KEY_DEF *key_def = find_key_def_by_name(after_eq);
-        if (!key_def) {
-            log_error(
-                    "Config error (line %d): invalid key name '%s'\n"
-                    "See the online docs for the latest list of key names.\n",
-                    linenum, after_eq);
-            return 1;
-        }
-
         // allocate the working remap if this is the first line of a block
-        if (!g_remap_parsee)
-            g_remap_parsee = new_remap(0, 0, 0);
+        if (!g_remap_parsee) {
+            g_remap_parsee = malloc(sizeof(struct Remap));
+            memset(g_remap_parsee, 0, sizeof(struct Remap));
+        }
 
         // fill the appropriate field & catch duplicate remap_key
         if (field == 1) {
@@ -323,11 +385,23 @@ int load_config_line(char *line, int linenum)
                         linenum);
                 return 1;
             }
+            KEY_DEF *key_def = find_key_def_by_name(after_eq);
+            if (!key_def) {
+                log_error(
+                        "Config error (line %d): invalid key name '%s'\n"
+                        "See the online docs for the latest list of key names.\n",
+                        linenum, after_eq);
+                return 1;
+            }
             g_remap_parsee->from = key_def;
         } else if (field == 2) { // when_alone=
-            g_remap_parsee->to_when_alone = key_def;
+            if (parse_key_list(after_eq, g_remap_parsee->to_when_alone, &g_remap_parsee->to_when_alone_count, linenum)) {
+                return 1;
+            }
         } else { // with_other=
-            g_remap_parsee->to_with_other = key_def;
+            if (parse_key_list(after_eq, g_remap_parsee->to_with_other, &g_remap_parsee->to_with_other_count, linenum)) {
+                return 1;
+            }
         }
 
         // commit when block is complete

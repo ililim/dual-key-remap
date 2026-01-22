@@ -4,6 +4,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MAX_KEYS 16
+
+enum State {
+    IDLE,
+    HELD_DOWN_ALONE,
+    HELD_DOWN_WITH_OTHER,
+};
+
+struct Remap {
+    struct KeyDef * from;
+    struct KeyDef * to_when_alone[MAX_KEYS];
+    int to_when_alone_count;
+    struct KeyDef * to_with_other[MAX_KEYS];
+    int to_with_other_count;
+    enum State state;
+    struct Remap * next;
+};
+
 // App struct for new config parsing
 typedef struct {
     int debug;          // 0 = off, 1 = on
@@ -163,9 +181,37 @@ struct Remap* find_or_create_remap(App* app, struct KeyDef* key_def) {
     
     // create new one with NOOP defaults and add to list immediately
     extern struct KeyDef * NOOP;  // assume NOOP is defined in keys.c
-    remap = new_remap(key_def, NOOP, NOOP);
+    remap = malloc(sizeof(struct Remap));
+    memset(remap, 0, sizeof(struct Remap));
+    remap->from = key_def;
+    remap->to_when_alone[0] = NOOP;
+    remap->to_when_alone_count = 1;
+    remap->to_with_other[0] = NOOP;
+    remap->to_with_other_count = 1;
     app_register_remap(app, remap);
     return remap;
+}
+
+int parse_key_list_new(char* value, struct KeyDef** keys_out, int* count_out, int linenum) {
+    *count_out = 0;
+    char buf[512];
+    TRY_LINE(strlen(value) < sizeof(buf), "value too long", linenum);
+    strcpy(buf, value);
+    
+    char* token = strtok(buf, ",");
+    while (token && *count_out < MAX_KEYS) {
+        token = trim(token);
+        to_uppercase(token);
+        
+        struct KeyDef* key_def = find_key_def_by_name(token);
+        TRY_LINE(key_def, "invalid key name", linenum);
+        
+        keys_out[(*count_out)++] = key_def;
+        token = strtok(NULL, ",");
+    }
+    
+    TRY_LINE(*count_out > 0, "no keys specified", linenum);
+    return 0;
 }
 
 int parse_new_config_line(App* app, char* line, int linenum) {
@@ -200,18 +246,16 @@ int parse_new_config_line(App* app, char* line, int linenum) {
         struct KeyDef* from_key = find_key_def_by_name(keyname);
         TRY_LINE(from_key, "invalid key name", linenum);
         
-        char value_upper[256];
-        strcpy(value_upper, pair.value);
-        to_uppercase(value_upper);
-        struct KeyDef* to_key = find_key_def_by_name(value_upper);
-        TRY_LINE(to_key, "invalid target key", linenum);
-        
         struct Remap* remap = find_or_create_remap(app, from_key);
         
         if (strcmp(action, "when_alone") == 0) {
-            remap->to_when_alone = to_key;
+            if (parse_key_list_new(pair.value, remap->to_when_alone, &remap->to_when_alone_count, linenum) != 0) {
+                return -1;
+            }
         } else if (strcmp(action, "with_other") == 0) {
-            remap->to_with_other = to_key;
+            if (parse_key_list_new(pair.value, remap->to_with_other, &remap->to_with_other_count, linenum) != 0) {
+                return -1;
+            }
         } else {
             TRY_LINE(0, "invalid action - must be when_alone or with_other", linenum);
         }

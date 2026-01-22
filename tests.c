@@ -282,6 +282,28 @@ int main(void)
     IN(ENTER,DOWN); SEE(ENTER,DOWN); EMPTY(); // no second CTRL down
     IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
 
+    SECTION("Multi-key sequence when_alone");
+    reset_config();
+    freopen(DEV_NULL, "w", stderr);
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE,ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+    freopen(DEV_TTY, "w", stderr);
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+
+    SECTION("Multi-key sequence with_other");
+    reset_config();
+    freopen(DEV_NULL, "w", stderr);
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=SHIFT,CTRL",0)==0,"");
+    freopen(DEV_TTY, "w", stderr);
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(SHIFT,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(ENTER,UP); SEE(ENTER,UP); EMPTY();
+    IN(CAPS,UP); SEE(SHIFT,UP); SEE(CTRL,UP); EMPTY();
+
     SECTION("Debug logging works as expected");
     g_debug = 0;
     capture_start();
@@ -295,6 +317,8 @@ int main(void)
     IN(CAPS,DOWN);
     IN(ENTER,DOWN);
     IN(ENTER,UP);
+    IN(CAPS,UP);
+    IN(CAPS,DOWN);
     IN(CAPS,UP);
     IN(TAB,DOWN);
     IN(TAB,UP);
