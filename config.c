@@ -136,7 +136,6 @@ int parse_bool_value(char* value) {
 // forward declarations for key lookup
 struct KeyDef;
 struct KeyDef * find_key_def_by_name(char * name);
-struct Remap * new_remap(struct KeyDef * from, struct KeyDef * to_when_alone, struct KeyDef * to_with_other);
 
 void app_register_remap(App* app, struct Remap * remap)
 {

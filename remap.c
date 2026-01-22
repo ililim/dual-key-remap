@@ -113,36 +113,6 @@ void log_send_input(char * remap_name, KEY_DEF * key, int dir)
 // Remapping
 // -------------------------------------
 
-struct Remap * new_remap(KEY_DEF * from, KEY_DEF * to_when_alone, KEY_DEF * to_with_other)
-{
-    struct Remap * remap = malloc(sizeof(struct Remap));
-    remap->from = from;
-    remap->to_when_alone[0] = to_when_alone;
-    remap->to_when_alone_count = 1;
-    remap->to_with_other[0] = to_with_other;
-    remap->to_with_other_count = 1;
-    remap->state = IDLE;
-    remap->next = 0;
-    return remap;
-}
-
-struct Remap * new_remap_multi(KEY_DEF * from, KEY_DEF ** to_when_alone, int when_alone_count, KEY_DEF ** to_with_other, int with_other_count)
-{
-    struct Remap * remap = malloc(sizeof(struct Remap));
-    remap->from = from;
-    remap->to_when_alone_count = when_alone_count < MAX_KEYS ? when_alone_count : MAX_KEYS;
-    remap->to_with_other_count = with_other_count < MAX_KEYS ? with_other_count : MAX_KEYS;
-    for (int i = 0; i < remap->to_when_alone_count; i++) {
-        remap->to_when_alone[i] = to_when_alone[i];
-    }
-    for (int i = 0; i < remap->to_with_other_count; i++) {
-        remap->to_with_other[i] = to_with_other[i];
-    }
-    remap->state = IDLE;
-    remap->next = 0;
-    return remap;
-}
-
 void register_remap(struct Remap * remap)
 {
     if (g_remap_list) {
