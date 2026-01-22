@@ -30,6 +30,18 @@ To uninstall, terminate the script from the task manager and remove the startup 
 
 With the default configuration Dual Key Remap will remap CapsLock to Escape when pressed alone and Ctrl when pressed with other keys. To change this simply edit config.txt and adjust the key values. You can refer to keys by their names as described in the [wiki](https://github.com/ililim/dual-key-remap/wiki/Using-config.txt#key-names).
 
+### Multiple Key Sequences
+
+You can map a single key press to multiple keys by separating them with commas. For example, to map CapsLock to send Escape twice when pressed alone:
+
+```
+remap_key=CAPSLOCK
+when_alone=ESCAPE,ESCAPE
+with_other=CTRL
+```
+
+This works for both `when_alone` and `with_other` mappings. Each key in the sequence will be pressed and released in order.
+
 ## Tips and Tricks
 
 Below are a few optional advanced tips for configuring your system and using Dual Key Remap. They assume you are using it to rebind CapsLock to Ctrl/Escape, but if you are rebinding other keys they might still be helpful to you.
