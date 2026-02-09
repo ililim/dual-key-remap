@@ -234,6 +234,15 @@ int event_remapped_key_down(struct Remap * remap)
 /* @return block_input */
 int event_remapped_key_up(struct Remap * remap)
 {
+    // If we receive a key UP while IDLE, it means our hook never saw the
+    // matching DOWN (e.g. the OS skipped our hook for that event). Without
+    // this guard we'd incorrectly fire when_alone on the orphaned UP. We
+    // pass it through (return 0) so the key doesn't appear stuck, since the
+    // DOWN already leaked through unblocked.
+    if (remap->state == IDLE) {
+        return 0;
+    }
+
     if (remap->state == HELD_DOWN_WITH_OTHER) {
         remap->state = IDLE;
         send_sequence("with_other", remap->with_other_keys, remap->with_other_count, UP);

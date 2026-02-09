@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 - Tap timeout: global `timeout_ms` setting suppresses `when_alone` action if key held longer than specified milliseconds (e.g., `timeout_ms=500`).
 
 ### Fixed
+- Fixed incorrectly firing `when_alone` action on orphaned key UP events when the OS skips the hook for the preceding DOWN (e.g. after prolonged keyboard inactivity).
 - Tray icon now retries up to 3 times (60 second intervals) if it fails to load on startup, fixing issues when launching during early boot before Explorer's system tray is ready.
 - Made config path detection robust to work regardless of exe name.
 - Improved stability and robustness (fixed hook callbacks, cleanup on exit, and config reload race conditions).
