@@ -60,6 +60,19 @@ With `+`, all keys are pressed down together and released in reverse order (like
 
 Note: `with_other` only supports `+` (chords), since modifiers need to stay held.
 
+### Modifier Suppression
+
+Useful if your laptop has a Copilot key you wish to remap. It sends `LEFT_WIN+LEFT_SHIFT+F23` as three separate events, by the time we intercept F23, the modifiers already leaked through. Use `-` to suppress them:
+
+```
+# Copilot key: release Win and Shift, send Ctrl on its own
+remap_key=F23-LEFT_WIN-LEFT_SHIFT
+when_alone=NOOP
+with_other=CTRL
+```
+
+When the remap activates, we send UP for each suppressed key to cancel it out. Works for any key that ships with unwanted modifier side-effects.
+
 ### Tap Timeout
 
 Suppress the `when_alone` action if a key is held too long. Useful to avoid accidental triggers:

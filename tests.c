@@ -579,6 +579,89 @@ int main(void)
     EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
     EXPECT(load_config_line("when_alone=ESCAPE,",0)==1,"trailing comma must error");
 
+    // Modifier suppression (remap_key=KEY-SUPPRESS1-SUPPRESS2)
+    // ---------------------------------------------------------
+
+    KEY_DEF *F23 = find_key_def_by_name("F23");
+    KEY_DEF *LWIN = find_key_def_by_name("LEFT_WIN");
+    KEY_DEF *LSHIFT_KEY = find_key_def_by_name("LEFT_SHIFT");
+
+    SECTION("suppress: with_other path");
+    reset_config();
+    EXPECT(load_config_line("remap_key=F23-LEFT_WIN-LEFT_SHIFT",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    // Copilot key sends WIN, SHIFT, then F23
+    IN(LWIN,DOWN);    SEE(LWIN,DOWN); EMPTY();
+    IN(LSHIFT_KEY,DOWN); SEE(LSHIFT_KEY,DOWN); EMPTY();
+    IN(F23,DOWN);
+        // suppress sends UP for WIN and SHIFT
+        SEE(LWIN,UP); SEE(LSHIFT_KEY,UP);
+    EMPTY();
+    // now press another key -> with_other fires
+    IN(ENTER,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(ENTER,UP);   SEE(ENTER,UP); EMPTY();
+    IN(F23,UP);     SEE(CTRL,UP); EMPTY();
+    // physical releases are harmless no-ops
+    IN(LSHIFT_KEY,UP); SEE(LSHIFT_KEY,UP); EMPTY();
+    IN(LWIN,UP);    SEE(LWIN,UP); EMPTY();
+
+    SECTION("suppress: when_alone path with NOOP");
+    reset_config();
+    EXPECT(load_config_line("remap_key=F23-LEFT_WIN-LEFT_SHIFT",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(LWIN,DOWN);    SEE(LWIN,DOWN); EMPTY();
+    IN(LSHIFT_KEY,DOWN); SEE(LSHIFT_KEY,DOWN); EMPTY();
+    IN(F23,DOWN);     SEE(LWIN,UP); SEE(LSHIFT_KEY,UP); EMPTY();
+    IN(F23,UP);       EMPTY(); // NOOP
+    IN(LSHIFT_KEY,UP); SEE(LSHIFT_KEY,UP); EMPTY();
+    IN(LWIN,UP);    SEE(LWIN,UP); EMPTY();
+
+    SECTION("suppress: when_alone path with action");
+    reset_config();
+    EXPECT(load_config_line("remap_key=F23-LEFT_WIN-LEFT_SHIFT",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(LWIN,DOWN);    SEE(LWIN,DOWN); EMPTY();
+    IN(LSHIFT_KEY,DOWN); SEE(LSHIFT_KEY,DOWN); EMPTY();
+    IN(F23,DOWN);     SEE(LWIN,UP); SEE(LSHIFT_KEY,UP); EMPTY();
+    IN(F23,UP);       SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+
+    SECTION("suppress: no suppress keys (backwards compat)");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+
+    SECTION("suppress: parse error invalid key");
+    reset_config();
+    EXPECT(load_config_line("remap_key=F23-INVALID_KEY",0)==1,"invalid suppress key must error");
+
+    SECTION("suppress: whitespace around dashes");
+    reset_config();
+    EXPECT(load_config_line("remap_key=F23 - LEFT_WIN - LEFT_SHIFT",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(LWIN,DOWN);    SEE(LWIN,DOWN); EMPTY();
+    IN(F23,DOWN);     SEE(LWIN,UP); SEE(LSHIFT_KEY,UP); EMPTY();
+    IN(F23,UP);       EMPTY();
+
+    SECTION("suppress: parse error trailing dash");
+    reset_config();
+    EXPECT(load_config_line("remap_key=F23-",0)==1,"trailing dash must error");
+
+    SECTION("suppress: parse error double dash");
+    reset_config();
+    EXPECT(load_config_line("remap_key=F23--LEFT_WIN",0)==1,"double dash must error");
+
     #include "test_keys.c"
 
     summary();
