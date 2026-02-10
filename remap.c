@@ -13,7 +13,8 @@
 // Types
 // --------------------------------------
 
-#define MAX_SEQ 8
+#define MAX_CHORD 8
+#define MAX_STEPS 8
 
 enum State {
     IDLE,
@@ -21,15 +22,20 @@ enum State {
     HELD_DOWN_WITH_OTHER,
 };
 
+struct Step {
+    KEY_DEF * keys[MAX_CHORD];
+    int count;
+};
+
 struct Remap
 {
     KEY_DEF * from;
 
-    KEY_DEF * when_alone_keys[MAX_SEQ];
-    int when_alone_count;
+    struct Step when_alone[MAX_STEPS];
+    int when_alone_steps;
 
-    KEY_DEF * with_other_keys[MAX_SEQ];
-    int with_other_count;
+    struct Step with_other;
+    int with_other_steps;
 
     unsigned long long key_down_time;
     int timeout_ms;
@@ -50,23 +56,8 @@ char g_last_error[256] = {0};
 struct Remap * g_remap_list;
 struct Remap * g_remap_parsee = 0;
 
-// Time
-// --------------------------------------
-
-#ifdef _WIN32
-static unsigned long long get_tick_count_ms(void) {
-    return GetTickCount64();
-}
-#else
-#include <time.h>
-static unsigned long long get_tick_count_ms(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (unsigned long long)ts.tv_sec * 1000ULL + ts.tv_nsec / 1000000ULL;
-}
-#endif
-
-unsigned long long (*get_time_ms)(void) = get_tick_count_ms; // overrideable for testing
+// Time (provided by host: dual-key-remap.c or tests.c)
+extern unsigned long long (*get_time_ms)(void);
 
 // Debug Logging
 // --------------------------------------
@@ -133,8 +124,8 @@ struct Remap * new_remap(KEY_DEF * from)
     struct Remap * remap = calloc(1, sizeof(struct Remap));
     remap->from = from;
     remap->state = IDLE;
-    remap->when_alone_count = -1;
-    remap->with_other_count = -1;
+    remap->when_alone_steps = -1;
+    remap->with_other_steps = -1;
     remap->timeout_ms = -1;
     return remap;
 }
@@ -162,7 +153,7 @@ struct Remap * find_remap_for_virt_code(int virt_code)
     return 0;
 }
 
-static void send_sequence(const char *name, KEY_DEF **keys, int count, enum Direction dir)
+static void send_chord(const char *name, KEY_DEF **keys, int count, enum Direction dir)
 {
     if (count <= 0) return;
 
@@ -185,7 +176,7 @@ static void send_sequence(const char *name, KEY_DEF **keys, int count, enum Dire
     }
 }
 
-static int parse_key_sequence(char *value, KEY_DEF **out)
+static int parse_chord(char *value, KEY_DEF **out)
 {
     while (*value && isspace((unsigned char)*value)) ++value;
     if (*value == '\0') return 0;
@@ -209,7 +200,7 @@ static int parse_key_sequence(char *value, KEY_DEF **out)
             for (char *c = start; *c; c++) *c = toupper((unsigned char)*c);
             KEY_DEF *k = find_key_def_by_name(start);
             if (!k) return -1;
-            if (count >= MAX_SEQ) return -1;
+            if (count >= MAX_CHORD) return -1;
             out[count++] = k;
         } else {
             return -1;
@@ -219,6 +210,40 @@ static int parse_key_sequence(char *value, KEY_DEF **out)
         *p++ = saved;
     }
     return count;
+}
+
+static int parse_steps(char *value, struct Step *out, int max_steps)
+{
+    while (*value && isspace((unsigned char)*value)) ++value;
+    if (*value == '\0') return 0;
+    if (strcasecmp(value, "NOOP") == 0) return 0;
+
+    int step_count = 0;
+    char *p = value;
+    while (*p) {
+        while (isspace((unsigned char)*p)) ++p;
+        if (*p == '\0') break;
+
+        char *start = p;
+        while (*p && *p != ',') ++p;
+
+        char saved = *p;
+        *p = '\0';
+
+        if (step_count >= max_steps) return -1;
+        int count = parse_chord(start, out[step_count].keys);
+        if (count <= 0) return -1;
+        out[step_count].count = count;
+        step_count++;
+
+        if (saved == '\0') break;
+        *p++ = saved;
+
+        // After a comma, the next step must not be empty
+        while (isspace((unsigned char)*p)) ++p;
+        if (*p == '\0' || *p == ',') return -1;
+    }
+    return step_count;
 }
 
 /* @return block_input */
@@ -245,7 +270,7 @@ int event_remapped_key_up(struct Remap * remap)
 
     if (remap->state == HELD_DOWN_WITH_OTHER) {
         remap->state = IDLE;
-        send_sequence("with_other", remap->with_other_keys, remap->with_other_count, UP);
+        send_chord("with_other", remap->with_other.keys, remap->with_other.count, UP);
     } else {
         int send_alone = 1;
         unsigned long long elapsed = 0;
@@ -258,8 +283,10 @@ int event_remapped_key_up(struct Remap * remap)
         remap->state = IDLE;
 
         if (send_alone) {
-            send_sequence("when_alone", remap->when_alone_keys, remap->when_alone_count, DOWN);
-            send_sequence("when_alone", remap->when_alone_keys, remap->when_alone_count, UP);
+            for (int i = 0; i < remap->when_alone_steps; i++) {
+                send_chord("when_alone", remap->when_alone[i].keys, remap->when_alone[i].count, DOWN);
+                send_chord("when_alone", remap->when_alone[i].keys, remap->when_alone[i].count, UP);
+            }
         } else if (timeout_ms > 0 && elapsed > 0) {
             if (g_debug && can_print()) {
                 print_log_prefix();
@@ -278,7 +305,7 @@ int event_other_input()
         if (remap->state == HELD_DOWN_ALONE) {
             remap->state = HELD_DOWN_WITH_OTHER;
             remap->key_down_time = 0;
-            send_sequence("with_other", remap->with_other_keys, remap->with_other_count, DOWN);
+            send_chord("with_other", remap->with_other.keys, remap->with_other.count, DOWN);
         }
         remap = remap->next;
     }
@@ -317,8 +344,8 @@ void cleanup_held_keys()
     g_paused = 1;
     struct Remap * remap = g_remap_list;
     while (remap) {
-        if (remap->state == HELD_DOWN_WITH_OTHER && remap->with_other_count > 0) {
-            send_sequence("with_other", remap->with_other_keys, remap->with_other_count, UP);
+        if (remap->state == HELD_DOWN_WITH_OTHER && remap->with_other.count > 0) {
+            send_chord("with_other", remap->with_other.keys, remap->with_other.count, UP);
             remap->state = IDLE;
         }
         remap = remap->next;
@@ -338,8 +365,8 @@ int parsee_is_valid()
 {
     return g_remap_parsee &&
         g_remap_parsee->from &&
-        (g_remap_parsee->when_alone_count >= 0) &&
-        (g_remap_parsee->with_other_count >= 0);
+        (g_remap_parsee->when_alone_steps >= 0) &&
+        (g_remap_parsee->with_other_steps >= 0);
 }
 
 /* @return error */
@@ -416,7 +443,7 @@ int load_config_line(char *line, int linenum)
                     linenum);
             return 1;
         }
-        if (g_remap_parsee && (g_remap_parsee->from || g_remap_parsee->when_alone_count >= 0 || g_remap_parsee->with_other_count >= 0)) {
+        if (g_remap_parsee && (g_remap_parsee->from || g_remap_parsee->when_alone_steps >= 0 || g_remap_parsee->with_other_steps >= 0)) {
             g_remap_parsee->timeout_ms = value;
         } else {
             g_timeout_ms = value;
@@ -453,7 +480,7 @@ int load_config_line(char *line, int linenum)
             }
             g_remap_parsee->from = key_def;
         } else if (field == 2) {
-            int count = parse_key_sequence(after_eq, g_remap_parsee->when_alone_keys);
+            int count = parse_steps(after_eq, g_remap_parsee->when_alone, MAX_STEPS);
             if (count < 0) {
                 log_error(
                         "Config error (line %d): invalid key sequence '%s'\n"
@@ -461,9 +488,15 @@ int load_config_line(char *line, int linenum)
                         linenum, after_eq);
                 return 1;
             }
-            g_remap_parsee->when_alone_count = count;
+            g_remap_parsee->when_alone_steps = count;
         } else {
-            int count = parse_key_sequence(after_eq, g_remap_parsee->with_other_keys);
+            if (strchr(after_eq, ',')) {
+                log_error(
+                        "Config error (line %d): with_other does not support"
+                        " comma-separated steps\n", linenum);
+                return 1;
+            }
+            int count = parse_steps(after_eq, &g_remap_parsee->with_other, 1);
             if (count < 0) {
                 log_error(
                         "Config error (line %d): invalid key sequence '%s'\n"
@@ -471,7 +504,7 @@ int load_config_line(char *line, int linenum)
                         linenum, after_eq);
                 return 1;
             }
-            g_remap_parsee->with_other_count = count;
+            g_remap_parsee->with_other_steps = count;
         }
 
         if (parsee_is_valid()) {

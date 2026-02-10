@@ -32,7 +32,7 @@ With the default configuration Dual Key Remap will remap CapsLock to Escape when
 
 ### Multi-key Sequences
 
-You can send multiple keys by separating them with `+`. For example:
+Use `+` to press multiple keys simultaneously (a chord), or `,` to send keys in sequence (one after another):
 
 ```
 # Hyper key: RIGHT_WIN as Ctrl+Alt+Shift modifier, no action when tapped
@@ -40,16 +40,25 @@ remap_key=RIGHT_WIN
 when_alone=NOOP
 with_other=CTRL+ALT+SHIFT
 
-# CapsLock to Escape when tapped, Ctrl+Alt+Shift when held
-remap_key=CAPSLOCK
-when_alone=ESCAPE
-with_other=CTRL+ALT+SHIFT
-
-# Open Start Menu with Ctrl+Escape
+# Open Start Menu with Ctrl+Escape chord
 remap_key=CAPSLOCK
 when_alone=CTRL+ESC
 with_other=CTRL
+
+# Double-tap Escape
+remap_key=CAPSLOCK
+when_alone=ESCAPE,ESCAPE
+with_other=CTRL
+
+# Chord sequence: Ctrl+K then Ctrl+C
+remap_key=CAPSLOCK
+when_alone=CTRL+KEY_K,CTRL+KEY_C
+with_other=CTRL
 ```
+
+With `+`, all keys are pressed down together and released in reverse order (like holding modifiers). With `,`, each step is pressed and released before the next. You can combine both: `CTRL+C,CTRL+V` sends Ctrl+C then Ctrl+V.
+
+Note: `with_other` only supports `+` (chords), since modifiers need to stay held.
 
 ### Tap Timeout
 
