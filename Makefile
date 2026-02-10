@@ -17,7 +17,7 @@ rebuild:
 restart:
 	$(MAKE) kill
 	$(MAKE) build
-	start dual-key-remap.exe
+	cmd /c start dual-key-remap.exe
 
 release:
 	$(MAKE) kill
