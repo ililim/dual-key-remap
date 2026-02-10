@@ -31,6 +31,9 @@ struct Remap
 {
     KEY_DEF * from;
 
+    KEY_DEF * suppress[MAX_CHORD];
+    int suppress_count;
+
     struct Step when_alone[MAX_STEPS];
     int when_alone_steps;
 
@@ -250,6 +253,12 @@ static int parse_steps(char *value, struct Step *out, int max_steps)
 int event_remapped_key_down(struct Remap * remap)
 {
     if (remap->state == IDLE) {
+        // Release suppressed modifiers before changing state, otherwise
+        // the injected UPs would trigger event_other_input for this remap
+        for (int i = 0; i < remap->suppress_count; i++) {
+            send_input(remap->suppress[i]->scan_code,
+                       remap->suppress[i]->virt_code, UP);
+        }
         remap->state = HELD_DOWN_ALONE;
         remap->key_down_time = get_time_ms();
     }
@@ -470,6 +479,17 @@ int load_config_line(char *line, int linenum)
                         linenum);
                 return 1;
             }
+            // Parse remap_key: KEY or KEY-SUPPRESS1-SUPPRESS2
+            char *dash = strchr(after_eq, '-');
+            if (dash) *dash = '\0';
+
+            // right-trim key name (needed when spaces surround the dash)
+            {
+                size_t klen = strlen(after_eq);
+                while (klen > 0 && isspace((unsigned char)after_eq[klen-1]))
+                    after_eq[--klen] = '\0';
+            }
+
             KEY_DEF *key_def = find_key_def_by_name(after_eq);
             if (!key_def) {
                 log_error(
@@ -479,6 +499,50 @@ int load_config_line(char *line, int linenum)
                 return 1;
             }
             g_remap_parsee->from = key_def;
+
+            if (dash) {
+                char *p = dash + 1;
+                while (isspace((unsigned char)*p)) ++p;
+                if (*p == '\0' || *p == '-') {
+                    log_error("Config error (line %d): empty suppress key\n", linenum);
+                    return 1;
+                }
+                while (*p) {
+                    while (isspace((unsigned char)*p)) ++p;
+                    if (*p == '\0') break;
+                    char *start = p;
+                    while (*p && *p != '-') ++p;
+                    char saved = *p;
+                    *p = '\0';
+
+                    size_t len = strlen(start);
+                    while (len > 0 && isspace((unsigned char)start[len-1]))
+                        start[--len] = '\0';
+
+                    if (len == 0) {
+                        log_error("Config error (line %d): empty suppress key\n", linenum);
+                        return 1;
+                    }
+
+                    for (char *c = start; *c; c++) *c = toupper((unsigned char)*c);
+                    KEY_DEF *sk = find_key_def_by_name(start);
+                    if (!sk) {
+                        log_error(
+                                "Config error (line %d): invalid suppress key '%s'\n"
+                                "See the online docs for the latest list of key names.\n",
+                                linenum, start);
+                        return 1;
+                    }
+                    if (g_remap_parsee->suppress_count >= MAX_CHORD) {
+                        log_error("Config error (line %d): too many suppress keys\n", linenum);
+                        return 1;
+                    }
+                    g_remap_parsee->suppress[g_remap_parsee->suppress_count++] = sk;
+
+                    if (saved == '\0') break;
+                    *p++ = saved;
+                }
+            }
         } else if (field == 2) {
             int count = parse_steps(after_eq, g_remap_parsee->when_alone, MAX_STEPS);
             if (count < 0) {
