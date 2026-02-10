@@ -14,6 +14,7 @@
 #define MENU_PAUSE_RESUME    2001
 #define MENU_DEBUG_TOGGLE    2002
 #define MENU_REFRESH_CONFIG  2003
+#define MENU_EDIT_CONFIG     2004
 #define MENU_REVEAL_CONFIG   2005
 #define MENU_ABOUT           2006
 #define MENU_CHECK_UPDATES   2007
@@ -80,6 +81,12 @@ void open_about() {
     open_url(L"https://github.com/ililim/dual-key-remap");
 }
 
+void edit_config() {
+    wchar_t config_path[MAX_PATH];
+    put_config_path(config_path);
+    ShellExecuteW(NULL, L"open", config_path, NULL, NULL, SW_SHOW);
+}
+
 void reveal_config() {
     wchar_t config_path[MAX_PATH];
     put_config_path(config_path);
@@ -131,6 +138,7 @@ void create_menu() {
 
     AppendMenu(menu, MF_STRING, MENU_PAUSE_RESUME, MENU_TEXT_PAUSE);
     AppendMenu(menu, MF_SEPARATOR, 0, NULL);
+    AppendMenu(menu, MF_STRING, MENU_EDIT_CONFIG, "Edit config");
     AppendMenu(menu, MF_STRING, MENU_REVEAL_CONFIG, "Show config folder");
     AppendMenu(menu, MF_STRING, MENU_REFRESH_CONFIG, "Reload config");
     AppendMenu(menu, MF_SEPARATOR, 0, NULL);
@@ -170,6 +178,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpar
             switch (LOWORD(wparam)) {
                 case MENU_PAUSE_RESUME:   toggle_pause(); break;
                 case MENU_DEBUG_TOGGLE:   toggle_debug(); break;
+                case MENU_EDIT_CONFIG:    edit_config(); break;
                 case MENU_REFRESH_CONFIG: reload_config(); break;
                 case MENU_REVEAL_CONFIG:  reveal_config(); break;
                 case MENU_ABOUT:          open_about(); break;
