@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 - Multi-key chords: `when_alone` and `with_other` now support multiple keys separated by `+` (e.g., `with_other=CTRL+ALT+SHIFT` or `when_alone=CTRL+ESC`). Keys are pressed simultaneously and released in reverse order.
 - Sequential steps: `when_alone` supports comma-separated steps (e.g., `when_alone=ESCAPE,ESCAPE`). Each step is pressed and released before the next. Can be combined with chords: `when_alone=CTRL+C,CTRL+V`.
 - Tap timeout: global `timeout_ms` setting suppresses `when_alone` action if key held longer than specified milliseconds (e.g., `timeout_ms=500`).
+- Tray menu: "Edit config" button opens config.txt in your default editor.
 
 ### Fixed
 - Fixed incorrectly firing `when_alone` action on orphaned key UP events when the OS skips the hook for the preceding DOWN (e.g. after prolonged keyboard inactivity).
