@@ -6,6 +6,12 @@
 #include <ctype.h>
 #include "input.h"
 #include "keys.c"
+
+static unsigned long long get_tick_count_ms(void) {
+    return GetTickCount64();
+}
+unsigned long long (*get_time_ms)(void) = get_tick_count_ms;
+
 #include "remap.c"
 #include "tray.c"
 

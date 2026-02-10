@@ -17,8 +17,7 @@
 
 static unsigned long long g_fake_time_ms = 0;
 static unsigned long long fake_time_ms(void) { return g_fake_time_ms; }
-
-extern unsigned long long (*get_time_ms)(void);
+unsigned long long (*get_time_ms)(void) = fake_time_ms;
 
 #include "remap.c"
 
@@ -141,8 +140,6 @@ char *capture_stop(void)
 /* Tests */
 int main(void)
 {
-    get_time_ms = fake_time_ms;
-
     SECTION("Passthrough keys if no config");
     EMPTY(); IN(ESC,DOWN); IN(SHIFT,DOWN); IN(ESC,UP);
         SEE(ESC,DOWN); SEE(SHIFT,DOWN); SEE(ESC,UP); EMPTY();
@@ -229,7 +226,7 @@ int main(void)
     SECTION("Handle duplicate same key down");
     IN(SHIFT,DOWN); IN(SHIFT,DOWN); EMPTY();
     IN(SHIFT,UP); SEE(SPACE,DOWN); SEE(SPACE,UP); EMPTY();
-    IN(SHIFT,UP); SEE(SPACE,DOWN); SEE(SPACE,UP); EMPTY();
+    IN(SHIFT,UP); SEE(SHIFT,UP); EMPTY();
 
     SECTION("Two remappings (tap first key)");
     IN(TAB,DOWN); IN(CAPS,DOWN); EMPTY();
@@ -378,7 +375,7 @@ int main(void)
     IN(CAPS,DOWN); EMPTY();
     IN(CAPS,UP);   EMPTY();
 
-    SECTION("sequence longer than MAX_SEQ errors");
+    SECTION("chord longer than MAX_CHORD errors");
     reset_config();
     EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
     EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
@@ -470,7 +467,7 @@ int main(void)
 
     IN(TAB,DOWN); IN(CAPS,DOWN); EMPTY();
     IN(ENTER,DOWN);
-        SEE(ALT,DOWN); SEE(SHIFT,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN);
+        SEE(CTRL,DOWN); SEE(ALT,DOWN); SEE(SHIFT,DOWN); SEE(ENTER,DOWN);
     EMPTY();
     IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
     IN(TAB,UP);  SEE(SHIFT,UP); SEE(ALT,UP); EMPTY();
@@ -506,6 +503,81 @@ int main(void)
     IN(CAPS,UP);
         SEE(ALT,UP); SEE(CTRL,UP);
     EMPTY();
+
+    // Sequential steps (comma-separated)
+    // ---------------------------------------------------------
+
+    SECTION("when_alone: sequential steps ESCAPE,ESCAPE");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE,ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+    EMPTY();
+
+    SECTION("when_alone: sequential chord steps CTRL+ESCAPE,CTRL+ESCAPE");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=CTRL+ESCAPE,CTRL+ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP);
+        SEE(CTRL,DOWN); SEE(ESC,DOWN); SEE(ESC,UP); SEE(CTRL,UP);
+        SEE(CTRL,DOWN); SEE(ESC,DOWN); SEE(ESC,UP); SEE(CTRL,UP);
+    EMPTY();
+
+    SECTION("with_other: comma rejected at parse time");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL,ALT",0)==1,"comma in with_other must error");
+
+    SECTION("when_alone: sequential steps suppressed by timeout");
+    reset_config();
+    EXPECT(load_config_line("timeout_ms=200",0)==0,"");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE,ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    g_fake_time_ms = 5000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 5300;
+    IN(CAPS,UP); EMPTY();
+
+    g_fake_time_ms = 6000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 6100;
+    IN(CAPS,UP);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+    EMPTY();
+
+    SECTION("when_alone: whitespace around commas");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone= ESCAPE , ESCAPE ",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+    EMPTY();
+
+    SECTION("parse error: empty step between commas");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE,,ESCAPE",0)==1,"empty step must error");
+
+    SECTION("parse error: trailing comma");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE,",0)==1,"trailing comma must error");
 
     #include "test_keys.c"
 
