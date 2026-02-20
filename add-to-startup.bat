@@ -9,20 +9,15 @@ echo ========================================
 echo  Dual Key Remap - Add to startup
 echo ========================================
 echo.
-echo This convenience script will create a Windows scheduled task to automatically
-echo start dual-key-remap when you log in with admin rights.
-echo.
-echo Why administrator privileges are required:
-echo   - To remap keys when the active window is an admin app
-echo   - Examples: Task Manager, Registry Editor, Command Prompt (admin)
-echo   - Without admin rights, key remapping won't work in these apps
-echo.
 
 :: Check if running as administrator
 net session >nul 2>&1
 if !errorlevel! neq 0 (
-    echo This script needs to run as Administrator to create the scheduled task.
-    echo Please right-click and select "Run as administrator"
+    echo ERROR: Script has been run without Administrator rights.
+    echo Please right-click and select "Run as administrator".
+    echo.
+    echo Admin rights are needed so key remapping works in elevated windows
+    echo ^(Task Manager, Registry Editor, etc^).
     echo.
     pause
     exit /b 1
@@ -37,6 +32,9 @@ if not exist "%EXE_PATH%" (
     exit /b 1
 )
 
+echo This script creates a Windows scheduled task to automatically
+echo start dual-key-remap when you log in with admin rights.
+echo.
 echo Found dual-key-remap.exe at:
 echo %EXE_PATH%
 echo.
@@ -58,11 +56,13 @@ echo.
 echo Creating scheduled task...
 echo.
 
-:: Delete existing task if it exists (ignore errors)
-schtasks /delete /tn "DualKeyRemap" /f >nul 2>&1
-
-:: Create the scheduled task
-schtasks /create /tn "DualKeyRemap" /tr "\"%EXE_PATH%\"" /sc onlogon /rl highest /f /ru "%USERNAME%" /it
+powershell.exe -NoProfile -Command ^
+    "$action = New-ScheduledTaskAction -Execute '\"%EXE_PATH%\"';" ^
+    "$trigger = New-ScheduledTaskTrigger -AtLogOn;" ^
+    "$principal = New-ScheduledTaskPrincipal -UserId '%USERNAME%' -RunLevel Highest -LogonType Interactive;" ^
+    "$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0;" ^
+    "Unregister-ScheduledTask -TaskName 'DualKeyRemap' -Confirm:$false -ErrorAction SilentlyContinue;" ^
+    "Register-ScheduledTask -TaskName 'DualKeyRemap' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force"
 
 if !errorlevel! equ 0 (
     echo.
