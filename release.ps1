@@ -13,10 +13,11 @@ Copy-Item .\README.md $Folder\README.txt
 Copy-Item .\CHANGELOG.md $Folder\CHANGELOG.txt
 Copy-Item .\LICENSE $Folder\LICENSE.txt
 Copy-Item .\config.example.txt $Folder\config.txt
+Copy-Item .\add-to-startup.bat $Folder
 
 $Zip = "$Folder.zip"
 if (Test-Path -Path $Zip) { Remove-Item $Zip }
 Compress-Archive -Path "$Folder\*" -DestinationPath $Zip
 Write-Output "Created $Zip"
 
-explorer $Folder
+explorer releases

@@ -66,8 +66,8 @@ powershell.exe -NoProfile -Command ^
 
 if !errorlevel! equ 0 (
     echo.
-    echo The task will start automatically when you log in with admin privileges.
-    echo To remove this task later, run:
+    echo The task will start dual-key-remap automatically at login with admin privileges.
+    echo If you wish to uninstall this task in the future you may run the following command:
     echo     schtasks /delete /tn "DualKeyRemap" /f
     echo.
 ) else (
