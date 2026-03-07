@@ -21,7 +21,7 @@ Other solutions can leak inputs, get stuck, or do not handle key timing edge cas
 
 1. Download and unzip the latest [release](https://github.com/ililim/dual-key-remap/releases).
 2. Put both 'dual-key-remap.exe' and 'config.txt' in a permanent directory of your choice. (e.g. `C:\Program Files\dual-key-remap`).
-3. Run 'add-to-startup.bat' as Administrator to start dual-key-remap automatically at login.
+3. Download [`add-to-startup.bat`](https://github.com/ililim/dual-key-remap/blob/main/add-to-startup.bat) into the same folder and run it as Administrator to start dual-key-remap automatically at login.
 4. Optionally edit config.txt (see below) and run 'dual-key-remap.exe'. 🥳 Your chosen keys are now remapped!
 
 To uninstall, right-click the tray icon and select "Exit", then remove the scheduled task by running: `schtasks /delete /tn "DualKeyRemap" /f`
@@ -104,7 +104,7 @@ Mouse clicks and scrolling will trigger the "with_other" behavior when a dual ke
 
 ### Administrator access
 
-If launched normally Dual Key Remap will not be able to rebind your key inputs while you're viewing escalated/administrator applications (e.g. Task Manager). The included `add-to-startup.bat` already handles this by creating a scheduled task that runs with admin privileges. If you're launching manually, make sure to run Dual Key Remap as administrator.
+If launched normally Dual Key Remap will not be able to rebind your key inputs while you're viewing escalated/administrator applications (e.g. Task Manager). The [`add-to-startup.bat`](https://github.com/ililim/dual-key-remap/blob/main/add-to-startup.bat) script handles this by creating a scheduled task that runs with admin privileges. If you're launching manually, make sure to run Dual Key Remap as administrator.
 
 ### Debug Mode
 
