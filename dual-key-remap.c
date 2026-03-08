@@ -1,4 +1,4 @@
-#define VERSION "0.10"
+#define VERSION "0.11"
 #define AUTHOR "ililim"
 
 #include <windows.h>
@@ -185,9 +185,11 @@ int main()
         goto end;
     }
 
-    // Elevate process and main thread priority to reduce input lag under high CPU load
-    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+    // Elevate process and main thread priority to reduce input lag under high CPU load.
+    // REALTIME is safe here: we do near-zero CPU (just a state machine check per keystroke)
+    // and spend almost all time idle in GetMessage.
+    SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 
     g_debug = g_debug || getenv("DEBUG");
     g_mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, mouse_callback, 0, 0);

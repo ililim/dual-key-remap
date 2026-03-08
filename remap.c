@@ -71,7 +71,7 @@ extern int can_print(void);
     if (g_debug && can_print()) { \
         printf(fmt, ##__VA_ARGS__); \
     } \
-    sprintf(g_last_error, fmt, ##__VA_ARGS__); \
+    snprintf(g_last_error, sizeof(g_last_error), fmt, ##__VA_ARGS__); \
 } while(0)
 
 #define log_info(fmt, ...) do { \
@@ -490,6 +490,7 @@ int load_config_line(char *line, int linenum)
                     after_eq[--klen] = '\0';
             }
 
+            for (char *c = after_eq; *c; c++) *c = toupper((unsigned char)*c);
             KEY_DEF *key_def = find_key_def_by_name(after_eq);
             if (!key_def) {
                 log_error(
