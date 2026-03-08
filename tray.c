@@ -7,8 +7,8 @@
 #define WM_TRAY_ICON_MESSAGE (WM_USER + 1)
 #define TRAY_ICON_ID 1001
 #define TRAY_RETRY_TIMER_ID 1002
-#define TRAY_RETRY_INTERVAL 60000  // 60 seconds
-#define TRAY_MAX_RETRIES 3
+#define TRAY_RETRY_INTERVAL 5000  // 5 seconds
+#define TRAY_MAX_RETRIES 20
 
 // Menu command IDs
 #define MENU_PAUSE_RESUME    2001
@@ -100,9 +100,9 @@ void reload_config() {
     put_config_path(config_path);
     create_console();
 
-    // Pause hooks and wait for in-flight callbacks to prevent race on g_remap_list
+    // Pause hooks so no callbacks fire while we rebuild the remap list
     g_paused = 1;
-    Sleep(50);
+    cleanup_held_keys();
     reset_config();
     int error = load_config_file(config_path);
     g_paused = 0;

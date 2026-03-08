@@ -2,13 +2,35 @@
 
 ## Build & Test
 
-Run tests: `cmd.exe /c run-tests.bat`
+Run tests:
+```
+cmd.exe /c "call \"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat\" -arch=x64 -host_arch=x64 -no_logo && cd /d C:\Users\marcin\dev\dual-key-remap && cl tests.c && .\tests.exe"
+```
 
-This sets up the Visual Studio x64 dev environment and runs `cl tests.c && .\tests.exe`.
+Gotchas when running from MINGW bash:
+- `cmd.exe /c run-tests.bat` fails because bash can't resolve the bat file path across shell boundaries. Must inline the full command.
+- `tests.exe` alone fails in cmd.exe because `.` is not in PATH by default. Must use `.\tests.exe`.
+- The `call` keyword is required before `VsDevCmd.bat` so cmd.exe returns to execute the remaining `&&` chain (without `call`, cmd.exe transfers control and never comes back).
 
 ## Code Style
 
-Pragmatic C in the style of Linus + DHH. Minimal abstractions, clean data structures, no unnecessary complexity. No em dashes in comments.
+Pragmatic C in the style of Linus + DHH. Minimal abstractions, clean data structures, no unnecessary complexity.
+
+- No em dashes in comments
+- Flat structs over deep nesting. Data should be obvious at a glance.
+- No premature abstraction. Three similar lines > a helper used once.
+- Early returns over deep if/else chains
+- `0` over `NULL` for pointer zeroing
+- `g_` prefix for globals
+- `// Section Name` + `// ------` dividers to organize files
+- `/* @return block_input */` style doc comments only where non-obvious
+- Sentinel values (`-1`) for "not yet configured" vs `0` for "configured as empty/NOOP"
+- Parse functions return count on success, 0 for empty/NOOP, -1 on error
+- Static for file-local helpers, extern for cross-file interfaces
+- Function pointers for host-provided platform code (get_time_ms, send_input)
+- Config parsing in the same file as the logic it configures (remap.c owns both)
+- Tests use a DSL: `IN(KEY,DIR)`, `SEE(KEY,DIR)`, `EMPTY()`, `SECTION("title")`
+- Keep tests readable as specifications: config block, input sequence, expected output
 
 ## Architecture
 
@@ -24,7 +46,7 @@ Pragmatic C in the style of Linus + DHH. Minimal abstractions, clean data struct
 
 ### Version number
 
-Set in `dual-key-remap.c` line 1: `#define VERSION "0.10"`. The release script reads this.
+Set in `dual-key-remap.c` line 1: `#define VERSION "0.11"`. The release script reads this.
 
 ### Steps
 

@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.11
+### Changed
+- Elevated process priority to REALTIME to virtually eliminate missed hooks under high CPU load.
+
 ## 0.10
 ### Added
 - Multi-key chords: `when_alone` and `with_other` now support multiple keys separated by `+` (e.g., `with_other=CTRL+ALT+SHIFT` or `when_alone=CTRL+ESC`). Keys are pressed simultaneously and released in reverse order.
