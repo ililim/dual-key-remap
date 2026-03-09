@@ -8,6 +8,7 @@ cmd.exe /c "call \"C:\Program Files\Microsoft Visual Studio\2022\Community\Commo
 ```
 
 Gotchas when running from MINGW bash:
+- The working directory is already set to the repo. No need to `cd` before git or other bash commands.
 - `cmd.exe /c run-tests.bat` fails because bash can't resolve the bat file path across shell boundaries. Must inline the full command.
 - `tests.exe` alone fails in cmd.exe because `.` is not in PATH by default. Must use `.\tests.exe`.
 - The `call` keyword is required before `VsDevCmd.bat` so cmd.exe returns to execute the remaining `&&` chain (without `call`, cmd.exe transfers control and never comes back).
@@ -41,6 +42,12 @@ Pragmatic C in the style of Linus + DHH. Minimal abstractions, clean data struct
 - `input.h` - shared Direction enum and send_input declaration
 
 `remap.c` is `#include`d directly into both `dual-key-remap.c` and `tests.c`. Platform-specific code (time, window APIs) lives in the host, exposed to remap.c via `extern` function pointers.
+
+## Wiki
+
+https://github.com/ililim/dual-key-remap/wiki/Using-config.txt
+
+User-facing docs for config.txt: basic setup (remap_key, when_alone, with_other), advanced features (chords, sequences, modifier suppression, tap timeout), full key names reference, and behavior notes (startup, tray, debug mode).
 
 ## Releasing a New Version
 

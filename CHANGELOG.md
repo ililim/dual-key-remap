@@ -2,8 +2,14 @@
 All notable changes to this project will be documented in this file.
 
 ## 0.11
+### Added
+- `to` directive for simple 1:1 key remapping (e.g., `to=ESCAPE`). Supports chords and sequences.
 ### Changed
 - Elevated process priority to REALTIME to virtually eliminate missed hooks under high CPU load.
+### Fixed
+- Fixed potential buffer overflow in error message formatting.
+- Config key names are now case-insensitive (e.g., `remap_key=capslock` works).
+- Fixed config reload leaving stale held keys from previous remappings.
 
 ## 0.10
 ### Added

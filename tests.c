@@ -662,6 +662,185 @@ int main(void)
     reset_config();
     EXPECT(load_config_line("remap_key=F23--LEFT_WIN",0)==1,"double dash must error");
 
+    // Simple remap (to=KEY)
+    // ---------------------------------------------------------
+
+    SECTION("to: single key DOWN/UP");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(CAPS,UP);   SEE(ESC,UP); EMPTY();
+
+    SECTION("to: key repeat");
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(CAPS,UP);   SEE(ESC,UP); EMPTY();
+
+    SECTION("to: other keys pass through without modifier");
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(ENTER,UP);   SEE(ENTER,UP); EMPTY();
+    IN(CAPS,UP);    SEE(ESC,UP); EMPTY();
+
+    SECTION("to: orphaned UP passes through");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+
+    IN(CAPS,UP); SEE(CAPS,UP); EMPTY();
+
+    SECTION("to: chord CTRL+ALT");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=CTRL+ALT",0)==0,"");
+
+    IN(CAPS,DOWN); SEE(CTRL,DOWN); SEE(ALT,DOWN); EMPTY();
+    IN(CAPS,UP);   SEE(ALT,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("to: sequence fires all steps on DOWN, nothing on UP");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE,ESCAPE",0)==0,"");
+
+    IN(CAPS,DOWN);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+    EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("to: chord sequence CTRL+KEY_K,CTRL+KEY_C");
+    reset_config();
+    KEY_DEF *KEY_K = find_key_def_by_name("KEY_K");
+    KEY_DEF *KEY_C = find_key_def_by_name("KEY_C");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=CTRL+KEY_K,CTRL+KEY_C",0)==0,"");
+
+    IN(CAPS,DOWN);
+        SEE(CTRL,DOWN); SEE(KEY_K,DOWN); SEE(KEY_K,UP); SEE(CTRL,UP);
+        SEE(CTRL,DOWN); SEE(KEY_C,DOWN); SEE(KEY_C,UP); SEE(CTRL,UP);
+    EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("to: sequence key repeat fires macro again");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE,ESCAPE",0)==0,"");
+
+    IN(CAPS,DOWN);
+        SEE(ESC,DOWN); SEE(ESC,UP); SEE(ESC,DOWN); SEE(ESC,UP);
+    EMPTY();
+    IN(CAPS,DOWN);
+        SEE(ESC,DOWN); SEE(ESC,UP); SEE(ESC,DOWN); SEE(ESC,UP);
+    EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("to: with suppress keys");
+    reset_config();
+    EXPECT(load_config_line("remap_key=F23-LEFT_WIN-LEFT_SHIFT",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+
+    IN(LWIN,DOWN);       SEE(LWIN,DOWN); EMPTY();
+    IN(LSHIFT_KEY,DOWN); SEE(LSHIFT_KEY,DOWN); EMPTY();
+    IN(F23,DOWN);
+        SEE(LWIN,UP); SEE(LSHIFT_KEY,UP);
+        SEE(ESC,DOWN);
+    EMPTY();
+    IN(F23,DOWN); SEE(ESC,DOWN); EMPTY(); // repeat: no extra suppress
+    IN(F23,UP);   SEE(ESC,UP); EMPTY();
+
+    SECTION("to: coexists with dual remap on different key");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("remap_key=TAB",0)==0,"");
+    EXPECT(load_config_line("when_alone=TAB",0)==0,"");
+    EXPECT(load_config_line("with_other=ALT",0)==0,"");
+
+    // simple remap works
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(CAPS,UP);   SEE(ESC,UP); EMPTY();
+    // dual remap works
+    IN(TAB,DOWN); EMPTY();
+    IN(TAB,UP); SEE(TAB,DOWN); SEE(TAB,UP); EMPTY();
+    // both held: simple fires immediately, dual waits
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(TAB,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(ALT,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(TAB,UP); SEE(ALT,UP); EMPTY();
+    IN(CAPS,UP); SEE(ESC,UP); EMPTY();
+
+    SECTION("to: NOOP does nothing");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=NOOP",0)==0,"");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP);   EMPTY();
+
+    SECTION("to: case insensitive");
+    reset_config();
+    EXPECT(load_config_line("remap_key=capslock",0)==0,"");
+    EXPECT(load_config_line("to=escape",0)==0,"");
+
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(CAPS,UP);   SEE(ESC,UP); EMPTY();
+
+    SECTION("to: mouse input does not trigger with_other");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN_MANUAL(0,MOUSE_DUMMY_VK,DOWN); SEE(MOUSE,DOWN); EMPTY();
+    IN(CAPS,UP); SEE(ESC,UP); EMPTY();
+
+    SECTION("to: two simple remaps held simultaneously");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("remap_key=TAB",0)==0,"");
+    EXPECT(load_config_line("to=KEY_A",0)==0,"");
+
+    KEY_DEF *KEY_A = find_key_def_by_name("KEY_A");
+    IN(CAPS,DOWN); SEE(ESC,DOWN); EMPTY();
+    IN(TAB,DOWN);  SEE(KEY_A,DOWN); EMPTY();
+    IN(TAB,UP);    SEE(KEY_A,UP); EMPTY();
+    IN(CAPS,UP);   SEE(ESC,UP); EMPTY();
+
+    SECTION("to: parse error mixing with when_alone");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("when_alone=TAB",0)==1,"to + when_alone must error");
+
+    SECTION("to: parse error mixing with with_other");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==1,"to + with_other must error");
+
+    SECTION("to: parse error when_alone then to");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("to=CTRL",0)==1,"when_alone + to must error");
+
+    SECTION("to: parse error invalid key");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=INVALID_KEY",0)==1,"invalid key must error");
+
+    SECTION("parse error: directive without remap_key");
+    reset_config();
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==1,"when_alone without remap_key");
+    reset_config();
+    EXPECT(load_config_line("with_other=CTRL",0)==1,"with_other without remap_key");
+    reset_config();
+    EXPECT(load_config_line("to=ESCAPE",0)==1,"to without remap_key");
+
     #include "test_keys.c"
 
     summary();
