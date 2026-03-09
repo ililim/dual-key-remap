@@ -27,6 +27,17 @@ To uninstall, right-click the tray icon and select "Exit", then remove the sched
 
 With the default configuration Dual Key Remap will remap CapsLock to Escape when pressed alone and Ctrl when pressed with other keys. To change this simply edit config.txt and adjust the key values. You can refer to keys by their names as described in the [wiki](https://github.com/ililim/dual-key-remap/wiki/Using-config.txt#key-names).
 
+### Simple Remapping
+
+Use `to` to remap one key to another:
+
+```
+remap_key=CAPSLOCK
+to=ESCAPE
+```
+
+Works with chords (`to=CTRL+ALT`) and sequences (`to=CTRL+KEY_K,CTRL+KEY_C`). A single key stays held while you hold it. A sequence fires on each press.
+
 ### Multi-key Sequences
 
 Use `+` to press multiple keys simultaneously (a chord), or `,` to send keys in sequence (one after another):

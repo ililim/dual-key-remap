@@ -40,6 +40,9 @@ struct Remap
     struct Step with_other;
     int with_other_steps;
 
+    struct Step to[MAX_STEPS];
+    int to_steps;
+
     unsigned long long key_down_time;
     int timeout_ms;
 
@@ -122,13 +125,13 @@ void log_handle_input_end(int scan_code, int virt_code, int dir, int is_injected
 // Remapping
 // -------------------------------------
 
-struct Remap * new_remap(KEY_DEF * from)
+struct Remap * new_remap()
 {
     struct Remap * remap = calloc(1, sizeof(struct Remap));
-    remap->from = from;
     remap->state = IDLE;
     remap->when_alone_steps = -1;
     remap->with_other_steps = -1;
+    remap->to_steps = -1;
     remap->timeout_ms = -1;
     return remap;
 }
@@ -252,6 +255,27 @@ static int parse_steps(char *value, struct Step *out, int max_steps)
 /* @return block_input */
 int event_remapped_key_down(struct Remap * remap)
 {
+    // Simple remap: send replacement immediately, bypass state machine
+    if (remap->to_steps > 0) {
+        if (remap->state == IDLE) {
+            for (int i = 0; i < remap->suppress_count; i++)
+                send_input(remap->suppress[i]->scan_code,
+                           remap->suppress[i]->virt_code, UP);
+            remap->state = HELD_DOWN_ALONE;
+        }
+        // Single step: held substitution (DOWN on press, UP on release)
+        // Multi step: macro (all steps fire on each press, nothing on release)
+        if (remap->to_steps == 1) {
+            send_chord("to", remap->to[0].keys, remap->to[0].count, DOWN);
+        } else {
+            for (int i = 0; i < remap->to_steps; i++) {
+                send_chord("to", remap->to[i].keys, remap->to[i].count, DOWN);
+                send_chord("to", remap->to[i].keys, remap->to[i].count, UP);
+            }
+        }
+        return 1;
+    }
+
     if (remap->state == IDLE) {
         // Release suppressed modifiers before changing state, otherwise
         // the injected UPs would trigger event_other_input for this remap
@@ -268,6 +292,17 @@ int event_remapped_key_down(struct Remap * remap)
 /* @return block_input */
 int event_remapped_key_up(struct Remap * remap)
 {
+    // Simple remap: release replacement, bypass state machine
+    if (remap->to_steps > 0) {
+        if (remap->state == IDLE)
+            return 0; // orphaned UP: DOWN leaked through, pass UP so key doesn't stick
+        remap->state = IDLE;
+        if (remap->to_steps == 1)
+            send_chord("to", remap->to[0].keys, remap->to[0].count, UP);
+        // multi-step: nothing on UP (all steps fired on DOWN)
+        return 1;
+    }
+
     // If we receive a key UP while IDLE, it means our hook never saw the
     // matching DOWN (e.g. the OS skipped our hook for that event). Without
     // this guard we'd incorrectly fire when_alone on the orphaned UP. We
@@ -310,8 +345,8 @@ int event_remapped_key_up(struct Remap * remap)
 int event_other_input()
 {
     struct Remap * remap = g_remap_list;
-    while(remap) {
-        if (remap->state == HELD_DOWN_ALONE) {
+    while (remap) {
+        if (remap->to_steps <= 0 && remap->state == HELD_DOWN_ALONE) {
             remap->state = HELD_DOWN_WITH_OTHER;
             remap->key_down_time = 0;
             send_chord("with_other", remap->with_other.keys, remap->with_other.count, DOWN);
@@ -353,7 +388,10 @@ void cleanup_held_keys()
     g_paused = 1;
     struct Remap * remap = g_remap_list;
     while (remap) {
-        if (remap->state == HELD_DOWN_WITH_OTHER && remap->with_other.count > 0) {
+        if (remap->state != IDLE && remap->to_steps == 1) {
+            send_chord("to", remap->to[0].keys, remap->to[0].count, UP);
+            remap->state = IDLE;
+        } else if (remap->state == HELD_DOWN_WITH_OTHER && remap->with_other.count > 0) {
             send_chord("with_other", remap->with_other.keys, remap->with_other.count, UP);
             remap->state = IDLE;
         }
@@ -372,10 +410,16 @@ void trim_newline(char * str)
 
 int parsee_is_valid()
 {
-    return g_remap_parsee &&
-        g_remap_parsee->from &&
-        (g_remap_parsee->when_alone_steps >= 0) &&
-        (g_remap_parsee->with_other_steps >= 0);
+    if (!g_remap_parsee || !g_remap_parsee->from) return 0;
+    if (g_remap_parsee->to_steps >= 0) return 1;
+    return (g_remap_parsee->when_alone_steps >= 0) &&
+           (g_remap_parsee->with_other_steps >= 0);
+}
+
+static int parse_bool(const char *value) {
+    if (strcmp(value, "1") == 0 || strcasecmp(value, "true")  == 0) return 1;
+    if (strcmp(value, "0") == 0 || strcasecmp(value, "false") == 0) return 0;
+    return -1;
 }
 
 /* @return error */
@@ -411,36 +455,16 @@ int load_config_line(char *line, int linenum)
     while (isspace((unsigned char)*after_eq))
         ++after_eq;
 
-    // toggle debug mode
-    if (strcmp(line, "debug") == 0) {
-        if (strcmp(after_eq, "1") == 0 || strcasecmp(after_eq, "true")  == 0) {
-            g_debug = 1;
-            return 0;
+    // boolean settings
+    if (strcmp(line, "debug") == 0 || strcmp(line, "show_tray") == 0) {
+        int v = parse_bool(after_eq);
+        if (v < 0) {
+            log_error("Config error (line %d): %s must be 0/1/true/false\n",
+                    linenum, line);
+            return 1;
         }
-        if (strcmp(after_eq, "0") == 0 || strcasecmp(after_eq, "false") == 0) {
-            g_debug = 0;
-            return 0;
-        }
-        log_error(
-                "Config error (line %d): debug must be 0/1/true/false\n",
-                linenum);
-        return 1;
-    }
-
-    // toggle tray visibility
-    if (strcmp(line, "show_tray") == 0) {
-        if (strcmp(after_eq, "1") == 0 || strcasecmp(after_eq, "true")  == 0) {
-            g_show_tray = 1;
-            return 0;
-        }
-        if (strcmp(after_eq, "0") == 0 || strcasecmp(after_eq, "false") == 0) {
-            g_show_tray = 0;
-            return 0;
-        }
-        log_error(
-                "Config error (line %d): show_tray must be 0/1/true/false\n",
-                linenum);
-        return 1;
+        if (line[0] == 'd') g_debug = v; else g_show_tray = v;
+        return 0;
     }
 
     // tap timeout
@@ -452,7 +476,7 @@ int load_config_line(char *line, int linenum)
                     linenum);
             return 1;
         }
-        if (g_remap_parsee && (g_remap_parsee->from || g_remap_parsee->when_alone_steps >= 0 || g_remap_parsee->with_other_steps >= 0)) {
+        if (g_remap_parsee) {
             g_remap_parsee->timeout_ms = value;
         } else {
             g_timeout_ms = value;
@@ -461,24 +485,24 @@ int load_config_line(char *line, int linenum)
     }
 
     // remap directives
-    int field = 0;                  // 1 = remap_key, 2 = when_alone, 3 = with_other
+    int field = 0;                  // 1 = remap_key, 2 = when_alone, 3 = with_other, 4 = to
     if      (strcmp(line, "remap_key")  == 0) field = 1;
     else if (strcmp(line, "when_alone") == 0) field = 2;
     else if (strcmp(line, "with_other") == 0) field = 3;
+    else if (strcmp(line, "to")         == 0) field = 4;
 
     if (field) {
-        if (!g_remap_parsee)
-            g_remap_parsee = new_remap(0);
-
         if (field == 1) {
-            if (g_remap_parsee->from && !parsee_is_valid()) {
+            if (g_remap_parsee && g_remap_parsee->from && !parsee_is_valid()) {
                 log_error(
                         "Config error (line %d): Incomplete remapping.\n"
-                        "Each remap needs remap_key, when_alone and with_other\n"
-                        "before another remap_key.\n",
+                        "Each remap needs remap_key with either 'to' or\n"
+                        "'when_alone' and 'with_other' before another remap_key.\n",
                         linenum);
                 return 1;
             }
+            free(g_remap_parsee);
+            g_remap_parsee = new_remap();
             // Parse remap_key: KEY or KEY-SUPPRESS1-SUPPRESS2
             char *dash = strchr(after_eq, '-');
             if (dash) *dash = '\0';
@@ -544,32 +568,65 @@ int load_config_line(char *line, int linenum)
                     *p++ = saved;
                 }
             }
-        } else if (field == 2) {
-            int count = parse_steps(after_eq, g_remap_parsee->when_alone, MAX_STEPS);
-            if (count < 0) {
-                log_error(
-                        "Config error (line %d): invalid key sequence '%s'\n"
-                        "See the online docs for the latest list of key names.\n",
-                        linenum, after_eq);
-                return 1;
-            }
-            g_remap_parsee->when_alone_steps = count;
         } else {
-            if (strchr(after_eq, ',')) {
+            // fields 2/3/4 require remap_key first
+            if (!g_remap_parsee) {
                 log_error(
-                        "Config error (line %d): with_other does not support"
-                        " comma-separated steps\n", linenum);
+                        "Config error (line %d): '%s' must come after 'remap_key'\n",
+                        linenum, line);
                 return 1;
             }
-            int count = parse_steps(after_eq, &g_remap_parsee->with_other, 1);
-            if (count < 0) {
-                log_error(
-                        "Config error (line %d): invalid key sequence '%s'\n"
-                        "See the online docs for the latest list of key names.\n",
-                        linenum, after_eq);
-                return 1;
+            if (field == 2 || field == 3) {
+                if (g_remap_parsee->to_steps >= 0) {
+                    log_error(
+                            "Config error (line %d): cannot use '%s' with 'to'\n",
+                            linenum, line);
+                    return 1;
+                }
+                if (field == 2) {
+                    int count = parse_steps(after_eq, g_remap_parsee->when_alone, MAX_STEPS);
+                    if (count < 0) {
+                        log_error(
+                                "Config error (line %d): invalid key sequence '%s'\n"
+                                "See the online docs for the latest list of key names.\n",
+                                linenum, after_eq);
+                        return 1;
+                    }
+                    g_remap_parsee->when_alone_steps = count;
+                } else {
+                    if (strchr(after_eq, ',')) {
+                        log_error(
+                                "Config error (line %d): with_other does not support"
+                                " comma-separated steps\n", linenum);
+                        return 1;
+                    }
+                    int count = parse_steps(after_eq, &g_remap_parsee->with_other, 1);
+                    if (count < 0) {
+                        log_error(
+                                "Config error (line %d): invalid key sequence '%s'\n"
+                                "See the online docs for the latest list of key names.\n",
+                                linenum, after_eq);
+                        return 1;
+                    }
+                    g_remap_parsee->with_other_steps = count;
+                }
+            } else {
+                if (g_remap_parsee->when_alone_steps >= 0 || g_remap_parsee->with_other_steps >= 0) {
+                    log_error(
+                            "Config error (line %d): cannot use 'to' with"
+                            " 'when_alone'/'with_other'\n", linenum);
+                    return 1;
+                }
+                int count = parse_steps(after_eq, g_remap_parsee->to, MAX_STEPS);
+                if (count < 0) {
+                    log_error(
+                            "Config error (line %d): invalid key sequence '%s'\n"
+                            "See the online docs for the latest list of key names.\n",
+                            linenum, after_eq);
+                    return 1;
+                }
+                g_remap_parsee->to_steps = count;
             }
-            g_remap_parsee->with_other_steps = count;
         }
 
         if (parsee_is_valid()) {
