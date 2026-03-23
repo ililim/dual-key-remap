@@ -3,7 +3,18 @@ setlocal enabledelayedexpansion
 
 :: Get the directory where this script is located
 set "SCRIPT_DIR=%~dp0"
-set "EXE_PATH=%SCRIPT_DIR%dual-key-remap.exe"
+
+:: Scoop-aware path resolution:
+:: When installed via Scoop, this script lives in a versioned folder
+:: (e.g. apps\dual-key-remap\0.11\). The sibling 'current' directory is
+:: a symlink that always points at the active version. Using it means the
+:: scheduled task survives 'scoop update' without needing to be re-registered.
+set "SCOOP_CURRENT=%SCRIPT_DIR%..\current\"
+if exist "%SCOOP_CURRENT%dual-key-remap.exe" (
+    set "EXE_PATH=%SCOOP_CURRENT%dual-key-remap.exe"
+) else (
+    set "EXE_PATH=%SCRIPT_DIR%dual-key-remap.exe"
+)
 
 echo ========================================
 echo  Dual Key Remap - Add to startup
@@ -25,7 +36,7 @@ if !errorlevel! neq 0 (
 
 :: Check if dual-key-remap.exe exists
 if not exist "%EXE_PATH%" (
-    echo ERROR: dual-key-remap.exe not found in script directory!
+    echo ERROR: dual-key-remap.exe not found!
     echo Expected location: %EXE_PATH%
     echo.
     pause
@@ -35,39 +46,24 @@ if not exist "%EXE_PATH%" (
 echo This script creates a Windows scheduled task to automatically
 echo start dual-key-remap when you log in with admin rights.
 echo.
-echo Found dual-key-remap.exe at:
+echo Registering task with exe at:
 echo %EXE_PATH%
-echo.
-set /p "CONFIRM=Is this the correct location? (Y/n): "
-if /i "%CONFIRM%"=="n" (
-    echo.
-    echo Installation cancelled.
-    pause
-    exit /b 0
-)
-if /i "%CONFIRM%"=="no" (
-    echo.
-    echo Installation cancelled.
-    pause
-    exit /b 0
-)
-echo.
-
-echo Creating scheduled task...
 echo.
 
 powershell.exe -NoProfile -Command ^
-    "$action = New-ScheduledTaskAction -Execute '\"%EXE_PATH%\"';" ^
-    "$trigger = New-ScheduledTaskTrigger -AtLogOn;" ^
-    "$principal = New-ScheduledTaskPrincipal -UserId '%USERNAME%' -RunLevel Highest -LogonType Interactive;" ^
+    "$exe = '%EXE_PATH%';" ^
+    "$dir = Split-Path $exe;" ^
+    "$action = New-ScheduledTaskAction -Execute $exe -WorkingDirectory $dir;" ^
+    "$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME;" ^
+    "$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest -LogonType Interactive;" ^
     "$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0;" ^
-    "Unregister-ScheduledTask -TaskName 'DualKeyRemap' -Confirm:$false -ErrorAction SilentlyContinue;" ^
-    "Register-ScheduledTask -TaskName 'DualKeyRemap' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force"
+    "Register-ScheduledTask -TaskName 'DualKeyRemap' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null;" ^
+    "Write-Host 'Done.'"
 
 if !errorlevel! equ 0 (
     echo.
-    echo The task will start dual-key-remap automatically at login with admin privileges.
-    echo If you wish to uninstall this task in the future you may run the following command:
+    echo Success! dual-key-remap will start automatically at login with admin privileges.
+    echo To remove the startup task, run:
     echo     schtasks /delete /tn "DualKeyRemap" /f
     echo.
 ) else (
@@ -75,5 +71,3 @@ if !errorlevel! equ 0 (
     echo Task creation failed with error code: !errorlevel!
     echo.
 )
-
-pause
