@@ -4,14 +4,14 @@ setlocal enabledelayedexpansion
 :: Get the directory where this script is located
 set "SCRIPT_DIR=%~dp0"
 
-:: Scoop-aware path resolution:
-:: When installed via Scoop, this script lives in a versioned folder
-:: (e.g. apps\dual-key-remap\0.11\). The sibling 'current' directory is
-:: a symlink that always points at the active version. Using it means the
-:: scheduled task survives 'scoop update' without needing to be re-registered.
-set "SCOOP_CURRENT=%SCRIPT_DIR%..\current\"
-if exist "%SCOOP_CURRENT%dual-key-remap.exe" (
-    set "EXE_PATH=%SCOOP_CURRENT%dual-key-remap.exe"
+:: Path resolution: prefer a sibling 'current' directory if one exists.
+:: Package managers (e.g. Scoop) install apps into versioned folders and
+:: keep a 'current' symlink pointing at the active version. Registering the
+:: task against that stable symlink means it survives updates automatically.
+:: Falls back to this script's own directory for plain manual installs.
+set "CURRENT_DIR=%SCRIPT_DIR%..\current\"
+if exist "%CURRENT_DIR%dual-key-remap.exe" (
+    set "EXE_PATH=%CURRENT_DIR%dual-key-remap.exe"
 ) else (
     set "EXE_PATH=%SCRIPT_DIR%dual-key-remap.exe"
 )
@@ -51,9 +51,7 @@ echo %EXE_PATH%
 echo.
 
 powershell.exe -NoProfile -Command ^
-    "$exe = '%EXE_PATH%';" ^
-    "$dir = Split-Path $exe;" ^
-    "$action = New-ScheduledTaskAction -Execute $exe -WorkingDirectory $dir;" ^
+    "$action = New-ScheduledTaskAction -Execute '%EXE_PATH%';" ^
     "$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME;" ^
     "$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest -LogonType Interactive;" ^
     "$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit 0;" ^
