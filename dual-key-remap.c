@@ -1,4 +1,4 @@
-#define VERSION "0.11"
+#define VERSION "0.12"
 #define AUTHOR "ililim"
 
 #include <windows.h>
@@ -30,6 +30,22 @@ extern int g_show_tray;
 extern void cleanup_held_keys();
 HHOOK g_mouse_hook;
 HHOOK g_keyboard_hook;
+UINT_PTR g_timeout_timer;
+
+static void CALLBACK timeout_timer_proc(HWND hwnd, UINT msg, UINT_PTR id, DWORD time)
+{
+    // SetTimer repeats; kill it after the first fire so it acts as one-shot
+    KillTimer(0, g_timeout_timer);
+    g_timeout_timer = 0;
+    handle_timeout();
+}
+
+static void set_wm_timer_ms(int ms)
+{
+    if (g_timeout_timer) KillTimer(0, g_timeout_timer);
+    g_timeout_timer = ms > 0 ? SetTimer(0, 0, ms, timeout_timer_proc) : 0;
+}
+void (*set_timer_ms)(int ms) = set_wm_timer_ms;
 
 void send_input(int scan_code, int virt_code, enum Direction direction)
 {
@@ -112,6 +128,7 @@ void create_console()
     if (AllocConsole()) {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
+        freopen("CONIN$", "r", stdin);
 
         // Remove the X button so that we don't accidentally close the main app
         // Console can be closed by toggling debug mode off
@@ -127,6 +144,7 @@ void destroy_console()
 {
     fclose(stdout);
     fclose(stderr);
+    fclose(stdin);
     FreeConsole();
 }
 

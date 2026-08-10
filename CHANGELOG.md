@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.12
+### Added
+- `when_timeout` directive: an extra remap action that fires immediately when the key has been held alone past `timeout_ms` (e.g., `when_timeout=CAPSLOCK` to get a real Caps Lock by holding). Supports chords and sequences.
+### Changed
+- Directives after a completed remap block now modify that remap, so `when_timeout` or `timeout_ms` can be added below `with_other`. `timeout_ms` is global only when set at the top of the config, before any `remap_key`.
+### Fixed
+- Setting names are now case-insensitive (e.g., `REMAP_KEY=CAPSLOCK` works). Previously only key values were.
+- Config error messages now stay on screen instead of flashing and closing immediately.
+
 ## 0.11
 ### Added
 - `to` directive for simple 1:1 key remapping (e.g., `to=ESCAPE`). Supports chords and sequences.

@@ -20,6 +20,7 @@ enum State {
     IDLE,
     HELD_DOWN_ALONE,
     HELD_DOWN_WITH_OTHER,
+    HELD_DOWN_TIMED_OUT,
 };
 
 struct Step {
@@ -39,6 +40,9 @@ struct Remap
 
     struct Step with_other;
     int with_other_steps;
+
+    struct Step when_timeout[MAX_STEPS];
+    int when_timeout_steps;
 
     struct Step to[MAX_STEPS];
     int to_steps;
@@ -64,6 +68,9 @@ struct Remap * g_remap_parsee = 0;
 
 // Time (provided by host: dual-key-remap.c or tests.c)
 extern unsigned long long (*get_time_ms)(void);
+
+// One-shot timer (provided by host); calls handle_timeout after ms, 0 cancels
+extern void (*set_timer_ms)(int ms);
 
 // Debug Logging
 // --------------------------------------
@@ -131,20 +138,24 @@ struct Remap * new_remap()
     remap->state = IDLE;
     remap->when_alone_steps = -1;
     remap->with_other_steps = -1;
+    remap->when_timeout_steps = -1;
     remap->to_steps = -1;
     remap->timeout_ms = -1;
     return remap;
 }
 
+struct Remap * last_remap()
+{
+    struct Remap * remap = g_remap_list;
+    while (remap && remap->next) remap = remap->next;
+    return remap;
+}
+
 void register_remap(struct Remap * remap)
 {
-    if (g_remap_list) {
-        struct Remap * tail = g_remap_list;
-        while (tail->next) tail = tail->next;
-        tail->next = remap;
-    } else {
-        g_remap_list = remap;
-    }
+    struct Remap * tail = last_remap();
+    if (tail) tail->next = remap;
+    else g_remap_list = remap;
 }
 
 struct Remap * find_remap_for_virt_code(int virt_code)
@@ -180,6 +191,36 @@ static void send_chord(const char *name, KEY_DEF **keys, int count, enum Directi
         for (int i = count - 1; i >= 0; --i)
             send_input(keys[i]->scan_code, keys[i]->virt_code, UP);
     }
+}
+
+static void send_steps(const char *name, struct Step *steps, int count)
+{
+    for (int i = 0; i < count; i++) {
+        send_chord(name, steps[i].keys, steps[i].count, DOWN);
+        send_chord(name, steps[i].keys, steps[i].count, UP);
+    }
+}
+
+static int effective_timeout_ms(struct Remap *remap)
+{
+    return (remap->timeout_ms >= 0) ? remap->timeout_ms : g_timeout_ms;
+}
+
+// Arm the host timer for the nearest pending when_timeout deadline, or cancel it when none
+static void arm_timeout_timer()
+{
+    unsigned long long now = get_time_ms();
+    int nearest = 0;
+    for (struct Remap *remap = g_remap_list; remap; remap = remap->next) {
+        if (remap->state != HELD_DOWN_ALONE || remap->when_timeout_steps <= 0 || !remap->key_down_time)
+            continue;
+        int timeout_ms = effective_timeout_ms(remap);
+        if (timeout_ms <= 0) continue;
+        unsigned long long deadline = remap->key_down_time + timeout_ms;
+        int remaining = (deadline > now) ? (int)(deadline - now) : 1;
+        if (!nearest || remaining < nearest) nearest = remaining;
+    }
+    set_timer_ms(nearest);
 }
 
 static int parse_chord(char *value, KEY_DEF **out)
@@ -268,10 +309,7 @@ int event_remapped_key_down(struct Remap * remap)
         if (remap->to_steps == 1) {
             send_chord("to", remap->to[0].keys, remap->to[0].count, DOWN);
         } else {
-            for (int i = 0; i < remap->to_steps; i++) {
-                send_chord("to", remap->to[i].keys, remap->to[i].count, DOWN);
-                send_chord("to", remap->to[i].keys, remap->to[i].count, UP);
-            }
+            send_steps("to", remap->to, remap->to_steps);
         }
         return 1;
     }
@@ -285,6 +323,7 @@ int event_remapped_key_down(struct Remap * remap)
         }
         remap->state = HELD_DOWN_ALONE;
         remap->key_down_time = get_time_ms();
+        if (remap->when_timeout_steps > 0) arm_timeout_timer();
     }
     return 1;
 }
@@ -312,29 +351,35 @@ int event_remapped_key_up(struct Remap * remap)
         return 0;
     }
 
+    // when_timeout already fired while held; swallow the release
+    if (remap->state == HELD_DOWN_TIMED_OUT) {
+        remap->state = IDLE;
+        return 1;
+    }
+
     if (remap->state == HELD_DOWN_WITH_OTHER) {
         remap->state = IDLE;
         send_chord("with_other", remap->with_other.keys, remap->with_other.count, UP);
     } else {
         int send_alone = 1;
         unsigned long long elapsed = 0;
-        int timeout_ms = (remap->timeout_ms >= 0) ? remap->timeout_ms : g_timeout_ms;
+        int timeout_ms = effective_timeout_ms(remap);
         if (timeout_ms > 0 && remap->key_down_time) {
             elapsed = get_time_ms() - remap->key_down_time;
-            if (elapsed > (unsigned long long)timeout_ms) send_alone = 0;
+            if (elapsed >= (unsigned long long)timeout_ms) send_alone = 0;
         }
         remap->key_down_time = 0;
         remap->state = IDLE;
 
         if (send_alone) {
-            for (int i = 0; i < remap->when_alone_steps; i++) {
-                send_chord("when_alone", remap->when_alone[i].keys, remap->when_alone[i].count, DOWN);
-                send_chord("when_alone", remap->when_alone[i].keys, remap->when_alone[i].count, UP);
-            }
+            send_steps("when_alone", remap->when_alone, remap->when_alone_steps);
+        } else if (remap->when_timeout_steps > 0) {
+            // Timer missed the deadline (host lag)
+            send_steps("when_timeout", remap->when_timeout, remap->when_timeout_steps);
         } else if (timeout_ms > 0 && elapsed > 0) {
             if (g_debug && can_print()) {
                 print_log_prefix();
-                log_info("(suppressed:when_alone) held %llums > %dms", elapsed, timeout_ms);
+                log_info("(suppressed:when_alone) held %llums >= %dms", elapsed, timeout_ms);
             }
         }
     }
@@ -356,6 +401,26 @@ int event_other_input()
     return 0;
 }
 
+// Called by the host when the timeout timer fires
+void handle_timeout()
+{
+    if (g_paused) return;
+
+    unsigned long long now = get_time_ms();
+    for (struct Remap *remap = g_remap_list; remap; remap = remap->next) {
+        if (remap->state != HELD_DOWN_ALONE || remap->when_timeout_steps <= 0 || !remap->key_down_time)
+            continue;
+        int timeout_ms = effective_timeout_ms(remap);
+        if (timeout_ms <= 0) continue;
+        if (now - remap->key_down_time < (unsigned long long)timeout_ms) continue;
+        // Change state before sending, otherwise our own injected output
+        // would trigger event_other_input for this remap
+        remap->state = HELD_DOWN_TIMED_OUT;
+        remap->key_down_time = 0;
+        send_steps("when_timeout", remap->when_timeout, remap->when_timeout_steps);
+    }
+    arm_timeout_timer();
+}
 
 /* @return block_input */
 int handle_input(int scan_code, int virt_code, int direction, int is_injected)
@@ -455,6 +520,9 @@ int load_config_line(char *line, int linenum)
     while (isspace((unsigned char)*after_eq))
         ++after_eq;
 
+    // setting names are case-insensitive
+    for (char *c = line; *c; c++) *c = tolower((unsigned char)*c);
+
     // boolean settings
     if (strcmp(line, "debug") == 0 || strcmp(line, "show_tray") == 0) {
         int v = parse_bool(after_eq);
@@ -476,20 +544,20 @@ int load_config_line(char *line, int linenum)
                     linenum);
             return 1;
         }
-        if (g_remap_parsee) {
-            g_remap_parsee->timeout_ms = value;
-        } else {
-            g_timeout_ms = value;
-        }
+        // Global when set before any remap, per-remap after
+        struct Remap *target = g_remap_parsee ? g_remap_parsee : last_remap();
+        if (target) target->timeout_ms = value;
+        else g_timeout_ms = value;
         return 0;
     }
 
     // remap directives
-    int field = 0;                  // 1 = remap_key, 2 = when_alone, 3 = with_other, 4 = to
-    if      (strcmp(line, "remap_key")  == 0) field = 1;
-    else if (strcmp(line, "when_alone") == 0) field = 2;
-    else if (strcmp(line, "with_other") == 0) field = 3;
-    else if (strcmp(line, "to")         == 0) field = 4;
+    int field = 0;                  // 1 = remap_key, 2 = when_alone, 3 = with_other, 4 = to, 5 = when_timeout
+    if      (strcmp(line, "remap_key")    == 0) field = 1;
+    else if (strcmp(line, "when_alone")   == 0) field = 2;
+    else if (strcmp(line, "with_other")   == 0) field = 3;
+    else if (strcmp(line, "to")           == 0) field = 4;
+    else if (strcmp(line, "when_timeout") == 0) field = 5;
 
     if (field) {
         if (field == 1) {
@@ -569,22 +637,30 @@ int load_config_line(char *line, int linenum)
                 }
             }
         } else {
-            // fields 2/3/4 require remap_key first
-            if (!g_remap_parsee) {
+            // Directives modify the remap being parsed, or the last registered
+            // one, so e.g. when_timeout can follow a completed block
+            struct Remap *target = g_remap_parsee ? g_remap_parsee : last_remap();
+            if (!target) {
                 log_error(
                         "Config error (line %d): '%s' must come after 'remap_key'\n",
                         linenum, line);
                 return 1;
             }
-            if (field == 2 || field == 3) {
-                if (g_remap_parsee->to_steps >= 0) {
+            if (field == 2 || field == 3 || field == 5) {
+                if (target->to_steps >= 0) {
                     log_error(
                             "Config error (line %d): cannot use '%s' with 'to'\n",
                             linenum, line);
                     return 1;
                 }
-                if (field == 2) {
-                    int count = parse_steps(after_eq, g_remap_parsee->when_alone, MAX_STEPS);
+                if (field == 2 || field == 5) {
+                    struct Step *steps = (field == 2)
+                        ? target->when_alone
+                        : target->when_timeout;
+                    int *step_count = (field == 2)
+                        ? &target->when_alone_steps
+                        : &target->when_timeout_steps;
+                    int count = parse_steps(after_eq, steps, MAX_STEPS);
                     if (count < 0) {
                         log_error(
                                 "Config error (line %d): invalid key sequence '%s'\n"
@@ -592,7 +668,7 @@ int load_config_line(char *line, int linenum)
                                 linenum, after_eq);
                         return 1;
                     }
-                    g_remap_parsee->when_alone_steps = count;
+                    *step_count = count;
                 } else {
                     if (strchr(after_eq, ',')) {
                         log_error(
@@ -600,7 +676,7 @@ int load_config_line(char *line, int linenum)
                                 " comma-separated steps\n", linenum);
                         return 1;
                     }
-                    int count = parse_steps(after_eq, &g_remap_parsee->with_other, 1);
+                    int count = parse_steps(after_eq, &target->with_other, 1);
                     if (count < 0) {
                         log_error(
                                 "Config error (line %d): invalid key sequence '%s'\n"
@@ -608,16 +684,18 @@ int load_config_line(char *line, int linenum)
                                 linenum, after_eq);
                         return 1;
                     }
-                    g_remap_parsee->with_other_steps = count;
+                    target->with_other_steps = count;
                 }
             } else {
-                if (g_remap_parsee->when_alone_steps >= 0 || g_remap_parsee->with_other_steps >= 0) {
+                if (target->when_alone_steps >= 0 ||
+                    target->with_other_steps >= 0 ||
+                    target->when_timeout_steps >= 0) {
                     log_error(
                             "Config error (line %d): cannot use 'to' with"
-                            " 'when_alone'/'with_other'\n", linenum);
+                            " 'when_alone'/'with_other'/'when_timeout'\n", linenum);
                     return 1;
                 }
-                int count = parse_steps(after_eq, g_remap_parsee->to, MAX_STEPS);
+                int count = parse_steps(after_eq, target->to, MAX_STEPS);
                 if (count < 0) {
                     log_error(
                             "Config error (line %d): invalid key sequence '%s'\n"
@@ -625,7 +703,7 @@ int load_config_line(char *line, int linenum)
                             linenum, after_eq);
                     return 1;
                 }
-                g_remap_parsee->to_steps = count;
+                target->to_steps = count;
             }
         }
 

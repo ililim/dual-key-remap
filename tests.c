@@ -19,6 +19,10 @@ static unsigned long long g_fake_time_ms = 0;
 static unsigned long long fake_time_ms(void) { return g_fake_time_ms; }
 unsigned long long (*get_time_ms)(void) = fake_time_ms;
 
+static int g_timer_armed_ms = 0;
+static void fake_set_timer(int ms) { g_timer_armed_ms = ms; }
+void (*set_timer_ms)(int ms) = fake_set_timer;
+
 #include "remap.c"
 
 #ifdef _WIN32
@@ -840,6 +844,264 @@ int main(void)
     EXPECT(load_config_line("with_other=CTRL",0)==1,"with_other without remap_key");
     reset_config();
     EXPECT(load_config_line("to=ESCAPE",0)==1,"to without remap_key");
+    reset_config();
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==1,"when_timeout without remap_key");
+
+    // Setting names are case-insensitive
+    // ---------------------------------------------------------
+
+    SECTION("setting names: case-insensitive");
+    reset_config();
+    EXPECT(load_config_line("Timeout_MS=200",0)==0,"Timeout_MS parses");
+    EXPECT(g_timeout_ms==200,"timeout applied");
+    EXPECT(load_config_line("REMAP_KEY=CAPSLOCK",0)==0,"REMAP_KEY parses");
+    EXPECT(load_config_line("When_Alone=ESCAPE",0)==0,"When_Alone parses");
+    EXPECT(load_config_line("WITH_OTHER=CTRL",0)==0,"WITH_OTHER parses");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 1100;
+    IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+
+    SECTION("setting names: Debug hits debug, not show_tray");
+    EXPECT(g_show_tray==1,"show_tray default on");
+    EXPECT(load_config_line("Debug=1",0)==0,"Debug=1 parses");
+    EXPECT(g_debug==1,"debug set");
+    EXPECT(g_show_tray==1,"show_tray untouched");
+    EXPECT(load_config_line("DEBUG=0",0)==0,"DEBUG=0 parses");
+    EXPECT(g_debug==0,"debug cleared");
+
+    // when_timeout (extra action when held past timeout_ms)
+    // ---------------------------------------------------------
+
+    SECTION("when_timeout: fires immediately when timer expires");
+    reset_config();
+    EXPECT(load_config_line("timeout_ms=200",0)==0,"");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    EXPECT(g_timer_armed_ms==200,"timer armed for timeout");
+    g_fake_time_ms = 1200;
+    handle_timeout(); SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+    IN(CAPS,UP); EMPTY(); // release swallowed, action already fired
+
+    SECTION("when_timeout: released before timeout fires when_alone");
+    g_fake_time_ms = 2000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 2100;
+    IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+
+    SECTION("when_timeout: fires on release if timer never fired");
+    g_fake_time_ms = 3000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 3300;
+    IN(CAPS,UP); SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+
+    SECTION("when_timeout: with_other before timeout wins");
+    g_fake_time_ms = 4000;
+    IN(CAPS,DOWN); EMPTY();
+    IN(ENTER,DOWN); SEE(CTRL,DOWN); SEE(ENTER,DOWN); EMPTY();
+    g_fake_time_ms = 4500;
+    handle_timeout(); EMPTY(); // no longer held alone, nothing fires
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("when_timeout: keys after fire pass through plain");
+    g_fake_time_ms = 5000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 5250;
+    handle_timeout(); SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+    IN(ENTER,DOWN); SEE(ENTER,DOWN); EMPTY();
+    IN(ENTER,UP);   SEE(ENTER,UP); EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("when_timeout: key repeat does not refire");
+    g_fake_time_ms = 6000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 6250;
+    handle_timeout(); SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 6900;
+    handle_timeout(); EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("when_timeout: chord and sequence steps");
+    reset_config();
+    EXPECT(load_config_line("timeout_ms=100",0)==0,"");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CTRL+ESCAPE,ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 1150;
+    handle_timeout();
+        SEE(CTRL,DOWN); SEE(ESC,DOWN); SEE(ESC,UP); SEE(CTRL,UP);
+        SEE(ESC,DOWN); SEE(ESC,UP);
+    EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("when_timeout: per-remap timeout_ms");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("timeout_ms=300",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    EXPECT(g_timer_armed_ms==300,"per-remap timeout armed");
+    g_fake_time_ms = 1350;
+    handle_timeout(); SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("when_timeout: without timeout_ms never fires");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 9000;
+    handle_timeout(); EMPTY();
+    IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+
+    SECTION("when_timeout: two armed keys, nearest deadline fires first");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("timeout_ms=1000",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+    EXPECT(load_config_line("remap_key=TAB",0)==0,"");
+    EXPECT(load_config_line("timeout_ms=300",0)==0,"");
+    EXPECT(load_config_line("when_alone=NOOP",0)==0,"");
+    EXPECT(load_config_line("when_timeout=KEY_A",0)==0,"");
+    EXPECT(load_config_line("with_other=ALT",0)==0,"");
+
+    g_fake_time_ms = 20000;
+    IN(CAPS,DOWN); EMPTY();
+    EXPECT(g_timer_armed_ms==1000,"armed for caps");
+    g_fake_time_ms = 20400;
+    IN(TAB,DOWN); EMPTY();
+    EXPECT(g_timer_armed_ms==300,"re-armed for nearer tab deadline");
+    g_fake_time_ms = 20700;
+    // Tab fires; its injected output counts as other input, so caps
+    // converts to with_other (same rule as when_alone taps)
+    handle_timeout();
+        SEE(CTRL,DOWN); SEE(KEY_A,DOWN); SEE(KEY_A,UP);
+    EMPTY();
+    EXPECT(g_timer_armed_ms==0,"nothing left to arm");
+    IN(TAB,UP); EMPTY();
+    IN(CAPS,UP); SEE(CTRL,UP); EMPTY();
+
+    SECTION("when_timeout: early release re-arms for the other key");
+    g_fake_time_ms = 30000;
+    IN(CAPS,DOWN); EMPTY();
+    EXPECT(g_timer_armed_ms==1000,"armed for caps");
+    g_fake_time_ms = 30100;
+    IN(TAB,DOWN); EMPTY();
+    EXPECT(g_timer_armed_ms==300,"re-armed for tab");
+    g_fake_time_ms = 30200;
+    IN(TAB,UP); EMPTY(); // NOOP when_alone, caps stays held alone
+    g_fake_time_ms = 30400;
+    handle_timeout(); EMPTY(); // stale fire for tab: nothing due yet
+    EXPECT(g_timer_armed_ms==600,"re-armed for caps' remaining time");
+    g_fake_time_ms = 31000;
+    handle_timeout(); SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("when_timeout: stale timer fire after quick re-press");
+    reset_config();
+    EXPECT(load_config_line("timeout_ms=1000",0)==0,"");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+
+    g_fake_time_ms = 40000;
+    IN(CAPS,DOWN); EMPTY();
+    EXPECT(g_timer_armed_ms==1000,"armed for first press");
+    g_fake_time_ms = 40100;
+    IN(CAPS,UP); SEE(ESC,DOWN); SEE(ESC,UP); EMPTY();
+    g_fake_time_ms = 40200;
+    IN(CAPS,DOWN); EMPTY();
+    EXPECT(g_timer_armed_ms==1000,"re-armed relative to second press");
+    // A stale WM_TIMER from the first press can survive KillTimer; it must
+    // re-check ground truth and see only 800ms of the second hold
+    g_fake_time_ms = 41000;
+    handle_timeout(); EMPTY();
+    EXPECT(g_timer_armed_ms==200,"re-armed for the remaining time");
+    g_fake_time_ms = 41200;
+    handle_timeout(); SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("when_timeout: parse error with 'to'");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==1,"to + when_timeout must error");
+
+    SECTION("when_timeout: parse error 'to' after when_timeout");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("to=ESCAPE",0)==1,"when_timeout + to must error");
+
+    // Trailing directives (after a completed remap block)
+    // ---------------------------------------------------------
+
+    SECTION("trailing directive modifies the last registered remap");
+    reset_config();
+    EXPECT(load_config_line("timeout_ms=200",0)==0,"");
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+    EXPECT(load_config_line("when_timeout=CAPSLOCK",0)==0,"when_timeout after completed block");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 1250;
+    handle_timeout(); SEE(CAPS,DOWN); SEE(CAPS,UP); EMPTY();
+    IN(CAPS,UP); EMPTY();
+
+    SECTION("trailing directive: repeated directive wins");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+    EXPECT(load_config_line("when_alone=TAB",0)==0,"overwrites earlier when_alone");
+
+    IN(CAPS,DOWN); EMPTY();
+    IN(CAPS,UP); SEE(TAB,DOWN); SEE(TAB,UP); EMPTY();
+
+    SECTION("trailing timeout_ms is per-remap, not global");
+    reset_config();
+    EXPECT(load_config_line("remap_key=CAPSLOCK",0)==0,"");
+    EXPECT(load_config_line("when_alone=ESCAPE",0)==0,"");
+    EXPECT(load_config_line("with_other=CTRL",0)==0,"");
+    EXPECT(load_config_line("timeout_ms=200",0)==0,"timeout after completed block");
+    EXPECT(load_config_line("remap_key=TAB",0)==0,"");
+    EXPECT(load_config_line("when_alone=TAB",0)==0,"");
+    EXPECT(load_config_line("with_other=ALT",0)==0,"");
+    EXPECT(g_timeout_ms==0,"global timeout untouched");
+
+    g_fake_time_ms = 1000;
+    IN(CAPS,DOWN); EMPTY();
+    g_fake_time_ms = 1300;
+    IN(CAPS,UP); EMPTY(); // suppressed by caps' own timeout
+
+    g_fake_time_ms = 2000;
+    IN(TAB,DOWN); EMPTY();
+    g_fake_time_ms = 2300;
+    IN(TAB,UP); SEE(TAB,DOWN); SEE(TAB,UP); EMPTY(); // no timeout on tab
 
     #include "test_keys.c"
 

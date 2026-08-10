@@ -62,6 +62,7 @@ Set in `dual-key-remap.c` line 1: `#define VERSION "0.11"`. The release script r
 3. Tag: `git tag v<version>`
 4. Push: `git push origin main --tags`
 5. Build release: `make release` (from a VS dev prompt, or `cmd.exe /c run-release.bat`)
+   - Always run this fresh; the script auto-deletes any existing folder/zip.
    - Kills running instance, builds exe, runs `release.ps1`
    - Creates `releases/dual-key-remap-v<version>/` with exe, README.txt, CHANGELOG.txt, LICENSE.txt, config.txt
    - Zips the folder to `releases/dual-key-remap-v<version>.zip`
